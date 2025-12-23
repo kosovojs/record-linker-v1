@@ -12,7 +12,7 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import Column, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -81,5 +81,5 @@ class User(BaseTableModel, table=True):
 
     # Relationships using SQLModel's Relationship()
     # back_populates links to the other side of the relationship
-    projects: list["Project"] = Relationship(back_populates="owner")
-    audit_logs: list["AuditLog"] = Relationship(back_populates="user")
+    projects: List["Project"] = Relationship(back_populates="owner")
+    audit_logs: List["AuditLog"] = Relationship(back_populates="user")

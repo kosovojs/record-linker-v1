@@ -10,7 +10,7 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -81,4 +81,4 @@ class Project(BaseTableModel, table=True):
     # Relationships
     dataset: "Dataset" = Relationship(back_populates="projects")
     owner: "User" = Relationship(back_populates="projects")
-    tasks: list["Task"] = Relationship(back_populates="project")
+    tasks: List["Task"] = Relationship(back_populates="project")

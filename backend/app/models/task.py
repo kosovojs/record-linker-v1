@@ -9,7 +9,7 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -106,6 +106,6 @@ class Task(BaseTableModel, table=True):
     # Relationships
     project: "Project" = Relationship(back_populates="tasks")
     dataset_entry: "DatasetEntry" = Relationship(back_populates="tasks")
-    candidates: list["MatchCandidate"] = Relationship(back_populates="task")
+    candidates: List["MatchCandidate"] = Relationship(back_populates="task")
     # Note: accepted_candidate relationship needs sa_relationship_kwargs for non-default FK
     # reviewed_by: "User" = Relationship() - omitted to avoid complexity

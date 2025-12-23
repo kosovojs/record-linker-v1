@@ -9,7 +9,7 @@ Design notes:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import Column, Index, String, Text, UniqueConstraint
 from sqlmodel import Field, Relationship
@@ -79,4 +79,4 @@ class PropertyDefinition(BaseTableModel, table=True):
     )
 
     # Relationships
-    values: list["DatasetEntryProperty"] = Relationship(back_populates="property_definition")
+    values: List["DatasetEntryProperty"] = Relationship(back_populates="property_definition")

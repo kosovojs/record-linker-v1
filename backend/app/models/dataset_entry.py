@@ -9,7 +9,7 @@ Design notes:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -76,5 +76,5 @@ class DatasetEntry(BaseTableModel, table=True):
 
     # Relationships
     dataset: "Dataset" = Relationship(back_populates="entries")
-    properties: list["DatasetEntryProperty"] = Relationship(back_populates="dataset_entry")
-    tasks: list["Task"] = Relationship(back_populates="dataset_entry")
+    properties: List["DatasetEntryProperty"] = Relationship(back_populates="dataset_entry")
+    tasks: List["Task"] = Relationship(back_populates="dataset_entry")
