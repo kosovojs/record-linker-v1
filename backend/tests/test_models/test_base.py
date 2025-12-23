@@ -135,14 +135,16 @@ class TestModelDefaults:
     def test_user_defaults(self):
         """Test User model has correct defaults."""
         from app.models.user import User
+        from app.schemas.enums import UserRole, UserStatus
         from app.schemas.jsonb_types import UserSettings
 
         user = User(
             email="test@example.com",
             display_name="Test User",
         )
-        assert user.role == "user"
-        assert user.status == "active"
+        # Enum defaults
+        assert user.role == UserRole.USER
+        assert user.status == UserStatus.ACTIVE
         assert user.password_hash is None
         # Settings now uses typed schema defaults
         assert "notifications" in user.settings
@@ -154,6 +156,7 @@ class TestModelDefaults:
     def test_project_defaults(self):
         """Test Project model has correct defaults."""
         from app.models.project import Project
+        from app.schemas.enums import ProjectStatus
         from app.schemas.jsonb_types import ProjectConfig
 
         project = Project(
@@ -161,7 +164,8 @@ class TestModelDefaults:
             owner_id=1,
             name="Test Project",
         )
-        assert project.status == "draft"
+        # Enum default
+        assert project.status == ProjectStatus.DRAFT
         assert project.task_count == 0
         assert project.tasks_completed == 0
         # Config now uses typed schema defaults
