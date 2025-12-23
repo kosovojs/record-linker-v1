@@ -586,7 +586,7 @@ The reference `v1.md` includes authentication endpoints. Do we need authenticati
 - D) Other: _____________
 
 **Your Answer:**
-
+C
 ---
 
 ### Q2: User Assignment
@@ -600,7 +600,7 @@ The models have `owner_id` on Project and `reviewed_by_id` on Task. How should t
 - D) Make user fields optional (nullable) for now
 
 **Your Answer:**
-
+D
 ---
 
 ### Q3: Task Creation Scope
@@ -614,7 +614,7 @@ When creating a project, should tasks be:
 - D) Combination - optional auto-create flag on project creation
 
 **Your Answer:**
-
+C
 ---
 
 ### Q4: Candidate Auto-Acceptance
@@ -628,7 +628,7 @@ The ProjectConfig has `auto_accept_threshold`. When a candidate exceeds this sco
 - D) Defer this feature for now
 
 **Your Answer:**
-
+D
 ---
 
 ### Q5: Wikidata Integration
@@ -642,7 +642,7 @@ The `/wikidata/search` endpoint implies calling external Wikidata API. Should th
 - D) Other: _____________
 
 **Your Answer:**
-
+C
 ---
 
 ### Q6: Dataset Entry Properties URL Structure
@@ -655,7 +655,7 @@ Currently proposed as `/entries/{entry_uuid}/properties`. Alternative:
 - C) Both routes (A as shortcut, B as canonical)
 
 **Your Answer:**
-
+A
 ---
 
 ### Q7: Audit Log Creation
@@ -669,7 +669,7 @@ Should audit logs be created:
 - D) Combination - different strategies for different actions
 
 **Your Answer:**
-
+D
 ---
 
 ### Q8: Pagination Style
@@ -682,7 +682,7 @@ For lists larger than ~100 items:
 - C) Both supported (caller's choice)
 
 **Your Answer:**
-
+A
 ---
 
 ### Q9: Candidate Deduplication
@@ -695,7 +695,7 @@ Per MODEL_SCHEMA.md, same Wikidata QID can appear multiple times for a task (dif
 - C) Prevent duplicate creation (return existing if same QID)
 
 **Your Answer:**
-
+A
 ---
 
 ### Q10: Error Handling for Bulk Operations
@@ -708,7 +708,7 @@ When bulk creating/updating and some items fail:
 - C) Configurable via request parameter
 
 **Your Answer:**
-
+suggest with argumentation and real-world experience which is the best. dont have stroing feelings between A and B
 ---
 
 ### Q11: Status Transition Validation
@@ -722,7 +722,7 @@ Should the API enforce valid state transitions (per MODEL_SCHEMA.md state machin
 - D) Warn but allow invalid transitions (for flexibility during dev)
 
 **Your Answer:**
-
+B
 ---
 
 ### Q12: Project Stats Computation
@@ -736,7 +736,7 @@ For `GET /projects/{uuid}/stats`:
 - D) Use denormalized counters + periodic sync job
 
 **Your Answer:**
-
+for now A
 ---
 
 ### Q13: File Import Format
@@ -750,7 +750,7 @@ For `POST /datasets/{dataset_uuid}/entries/import`:
 - D) Defer file import to later phase
 
 **Your Answer:**
-
+D
 ---
 
 ### Q14: Entry Properties Endpoint Necessity
@@ -763,7 +763,7 @@ The `/entries/{entry_uuid}/properties` endpoints manage EAV values. Are these ne
 - C) Read-only needed (GET only), no create/update
 
 **Your Answer:**
-
+B, but we need the GET
 ---
 
 ### Q15: Nested Task Retrieval
@@ -776,7 +776,7 @@ Currently tasks are under `/projects/{project_uuid}/tasks/{uuid}`. Sometimes we 
 - C) Add `/tasks/{uuid}` as alias (same response as nested)
 
 **Your Answer:**
-
+C
 ---
 
 ## Implementation Plan
