@@ -25,7 +25,6 @@ from app.api.deps import DbSession, Pagination
 from app.api.utils import get_or_404, handle_conflict_error, raise_not_found
 from app.schemas.common import PaginatedResponse
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
-from app.schemas.dataset_entry import DatasetEntryRead
 from app.services.project_service import ProjectService
 from app.services.task_service import TaskService
 from app.services.entry_service import EntryService
@@ -34,7 +33,7 @@ from app.services.exceptions import ConflictError
 router = APIRouter()
 
 
-# Add validator for extra_data JSON (SQLite compatibility)
+# SQLite JSON compatibility
 class TaskReadWithValidator(TaskRead):
     """TaskRead with SQLite JSON compatibility."""
 
@@ -46,21 +45,6 @@ class TaskReadWithValidator(TaskRead):
         if isinstance(v, str):
             return json.loads(v)
         return v
-
-
-async def _enrich_task_read(service: TaskService, task) -> TaskReadWithValidator:
-    """Enrich TaskRead with project_uuid and entry_uuid."""
-    task_read = TaskReadWithValidator.model_validate(task)
-
-    project = await service.get_project_for_task(task)
-    if project:
-        task_read.project_uuid = project.uuid
-
-    entry = await service.get_entry_for_task(task)
-    if entry:
-        task_read.dataset_entry_uuid = entry.uuid
-
-    return task_read
 
 
 # ============================================================================
@@ -95,7 +79,15 @@ async def list_tasks(
         min_score=min_score,
     )
 
-    task_reads = [await _enrich_task_read(task_service, t) for t in items]
+    # Fixed N+1: use known project_uuid and batch-fetch entry UUIDs
+    entry_uuids = await task_service.get_entry_uuids_for_tasks(items)
+
+    task_reads = []
+    for task in items:
+        task_read = TaskReadWithValidator.model_validate(task)
+        task_read.project_uuid = project_uuid  # Known from path
+        task_read.dataset_entry_uuid = entry_uuids.get(task.id)
+        task_reads.append(task_read)
 
     return PaginatedResponse[TaskReadWithValidator](
         items=task_reads,
@@ -131,7 +123,10 @@ async def create_task(
     except ConflictError as e:
         handle_conflict_error(e)
 
-    return await _enrich_task_read(task_service, task)
+    task_read = TaskReadWithValidator.model_validate(task)
+    task_read.project_uuid = project_uuid
+    task_read.dataset_entry_uuid = data.dataset_entry_uuid
+    return task_read
 
 
 @router.get(
@@ -148,8 +143,14 @@ async def get_task(
     await get_or_404(project_service, project_uuid, "Project")
 
     task_service = TaskService(db)
-    task = await get_or_404(task_service, task_uuid, "Task")
-    return await _enrich_task_read(task_service, task)
+    task, entry_uuid = await task_service.get_with_entry_uuid(task_uuid)
+    if not task:
+        raise_not_found("Task")
+
+    task_read = TaskReadWithValidator.model_validate(task)
+    task_read.project_uuid = project_uuid
+    task_read.dataset_entry_uuid = entry_uuid
+    return task_read
 
 
 @router.patch(
@@ -169,7 +170,12 @@ async def update_task(
     task_service = TaskService(db)
     task = await get_or_404(task_service, task_uuid, "Task")
     updated = await task_service.update(task, data)
-    return await _enrich_task_read(task_service, updated)
+
+    entry = await task_service.get_entry_for_task(updated)
+    task_read = TaskReadWithValidator.model_validate(updated)
+    task_read.project_uuid = project_uuid
+    task_read.dataset_entry_uuid = entry.uuid if entry else None
+    return task_read
 
 
 @router.delete(
@@ -207,7 +213,12 @@ async def skip_task(
     task_service = TaskService(db)
     task = await get_or_404(task_service, task_uuid, "Task")
     skipped = await task_service.skip_task(task)
-    return await _enrich_task_read(task_service, skipped)
+
+    entry = await task_service.get_entry_for_task(skipped)
+    task_read = TaskReadWithValidator.model_validate(skipped)
+    task_read.project_uuid = project_uuid
+    task_read.dataset_entry_uuid = entry.uuid if entry else None
+    return task_read
 
 
 # ============================================================================
@@ -222,5 +233,11 @@ async def get_task_by_uuid(
 ):
     """Get a task by UUID alone (alias for nested route)."""
     task_service = TaskService(db)
-    task = await get_or_404(task_service, task_uuid, "Task")
-    return await _enrich_task_read(task_service, task)
+    task, project_uuid, entry_uuid = await task_service.get_with_related_uuids(task_uuid)
+    if not task:
+        raise_not_found("Task")
+
+    task_read = TaskReadWithValidator.model_validate(task)
+    task_read.project_uuid = project_uuid
+    task_read.dataset_entry_uuid = entry_uuid
+    return task_read

@@ -25,15 +25,6 @@ from app.services.dataset_service import DatasetService
 router = APIRouter()
 
 
-async def _enrich_project_read(service: ProjectService, project) -> ProjectRead:
-    """Enrich ProjectRead with dataset_uuid."""
-    dataset = await service.get_dataset_for_project(project)
-    project_read = ProjectRead.model_validate(project)
-    if dataset:
-        project_read.dataset_uuid = dataset.uuid
-    return project_read
-
-
 @router.get("", response_model=PaginatedResponse[ProjectRead])
 async def list_projects(
     db: DbSession,
@@ -47,16 +38,14 @@ async def list_projects(
 ):
     """List all projects with pagination and optional filters."""
     service = ProjectService(db)
-    items, total = await service.get_list_filtered(
+    items, total = await service.get_list_with_datasets(
         pagination=pagination,
         status=status_filter,
         dataset_uuid=dataset_uuid,
     )
 
-    project_reads = [await _enrich_project_read(service, p) for p in items]
-
     return PaginatedResponse[ProjectRead](
-        items=project_reads,
+        items=items,
         total=total,
         page=pagination.page,
         page_size=pagination.page_size,
@@ -90,8 +79,16 @@ async def get_project(
 ):
     """Get a single project by UUID with stats."""
     service = ProjectService(db)
-    project = await get_or_404(service, uuid, "Project")
-    return await _enrich_project_read(service, project)
+    project, dataset = await service.get_with_dataset(uuid)
+
+    if not project:
+        raise_not_found("Project")
+
+    project_read = ProjectRead.model_validate(project)
+    if dataset:
+        project_read.dataset_uuid = dataset.uuid
+
+    return project_read
 
 
 @router.patch("/{uuid}", response_model=ProjectRead)
@@ -104,7 +101,12 @@ async def update_project(
     service = ProjectService(db)
     project = await get_or_404(service, uuid, "Project")
     updated = await service.update(project, data)
-    return await _enrich_project_read(service, updated)
+
+    dataset = await service.get_dataset_for_project(updated)
+    project_read = ProjectRead.model_validate(updated)
+    if dataset:
+        project_read.dataset_uuid = dataset.uuid
+    return project_read
 
 
 @router.delete("/{uuid}", status_code=status.HTTP_204_NO_CONTENT)

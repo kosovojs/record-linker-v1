@@ -7,16 +7,15 @@ Entries are nested under datasets:
 - GET /datasets/{uuid}/entries/{uuid} - Get entry
 - PATCH /datasets/{uuid}/entries/{uuid} - Update entry
 - DELETE /datasets/{uuid}/entries/{uuid} - Soft delete entry
-
-Plus read-only endpoint for entry properties:
-- GET /entries/{uuid}/properties - List properties for entry
 """
 
 from __future__ import annotations
 
+import json
 from uuid import UUID
 
 from fastapi import APIRouter, Query, status
+from pydantic import field_validator
 
 from app.api.deps import DbSession, Pagination
 from app.api.utils import get_or_404, handle_conflict_error
@@ -29,13 +28,18 @@ from app.services.exceptions import ConflictError
 router = APIRouter()
 
 
-async def _enrich_entry_read(service: EntryService, entry) -> DatasetEntryRead:
-    """Enrich DatasetEntryRead with dataset_uuid."""
-    dataset = await service.get_dataset_for_entry(entry)
-    entry_read = DatasetEntryRead.model_validate(entry)
-    if dataset:
-        entry_read.dataset_uuid = dataset.uuid
-    return entry_read
+# SQLite JSON compatibility for extra_data/raw_data fields
+class DatasetEntryReadWithValidator(DatasetEntryRead):
+    """DatasetEntryRead with SQLite JSON compatibility."""
+
+    @field_validator("extra_data", "raw_data", mode="before")
+    @classmethod
+    def parse_json_fields(cls, v):
+        if v is None:
+            return {} if cls.model_fields.get("extra_data") else None
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
 
 
 # ============================================================================
@@ -45,7 +49,7 @@ async def _enrich_entry_read(service: EntryService, entry) -> DatasetEntryRead:
 
 @router.get(
     "/datasets/{dataset_uuid}/entries",
-    response_model=PaginatedResponse[DatasetEntryRead],
+    response_model=PaginatedResponse[DatasetEntryReadWithValidator],
 )
 async def list_entries(
     db: DbSession,
@@ -64,9 +68,14 @@ async def list_entries(
         search=search,
     )
 
-    entry_reads = [await _enrich_entry_read(entry_service, e) for e in items]
+    # No N+1: we already know dataset_uuid from the path parameter
+    entry_reads = []
+    for entry in items:
+        entry_read = DatasetEntryReadWithValidator.model_validate(entry)
+        entry_read.dataset_uuid = dataset_uuid  # Use known value, no extra query
+        entry_reads.append(entry_read)
 
-    return PaginatedResponse[DatasetEntryRead](
+    return PaginatedResponse[DatasetEntryReadWithValidator](
         items=entry_reads,
         total=total,
         page=pagination.page,
@@ -77,7 +86,7 @@ async def list_entries(
 
 @router.post(
     "/datasets/{dataset_uuid}/entries",
-    response_model=list[DatasetEntryRead],
+    response_model=list[DatasetEntryReadWithValidator],
     status_code=status.HTTP_201_CREATED,
 )
 async def create_entries(
@@ -95,12 +104,18 @@ async def create_entries(
     except ConflictError as e:
         handle_conflict_error(e)
 
-    return [await _enrich_entry_read(entry_service, e) for e in entries]
+    # Use known dataset_uuid - no N+1
+    entry_reads = []
+    for entry in entries:
+        entry_read = DatasetEntryReadWithValidator.model_validate(entry)
+        entry_read.dataset_uuid = dataset_uuid
+        entry_reads.append(entry_read)
+    return entry_reads
 
 
 @router.get(
     "/datasets/{dataset_uuid}/entries/{entry_uuid}",
-    response_model=DatasetEntryRead,
+    response_model=DatasetEntryReadWithValidator,
 )
 async def get_entry(
     db: DbSession,
@@ -108,18 +123,20 @@ async def get_entry(
     entry_uuid: UUID,
 ):
     """Get a single entry by UUID."""
-    # Validate dataset exists
     dataset_service = DatasetService(db)
     await get_or_404(dataset_service, dataset_uuid, "Dataset")
 
     entry_service = EntryService(db)
     entry = await get_or_404(entry_service, entry_uuid, "Entry")
-    return await _enrich_entry_read(entry_service, entry)
+
+    entry_read = DatasetEntryReadWithValidator.model_validate(entry)
+    entry_read.dataset_uuid = dataset_uuid
+    return entry_read
 
 
 @router.patch(
     "/datasets/{dataset_uuid}/entries/{entry_uuid}",
-    response_model=DatasetEntryRead,
+    response_model=DatasetEntryReadWithValidator,
 )
 async def update_entry(
     db: DbSession,
@@ -138,7 +155,10 @@ async def update_entry(
         updated = await entry_service.update_with_validation(entry, data)
     except ConflictError as e:
         handle_conflict_error(e)
-    return await _enrich_entry_read(entry_service, updated)
+
+    entry_read = DatasetEntryReadWithValidator.model_validate(updated)
+    entry_read.dataset_uuid = dataset_uuid
+    return entry_read
 
 
 @router.delete(

@@ -16,7 +16,7 @@ from app.models.dataset_entry import DatasetEntry
 from app.schemas.common import PaginationParams
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.base import BaseService
-from app.services.exceptions import ConflictError, NotFoundError
+from app.services.exceptions import ConflictError
 
 
 class TaskService(BaseService[Task, TaskCreate, TaskUpdate]):
@@ -24,6 +24,56 @@ class TaskService(BaseService[Task, TaskCreate, TaskUpdate]):
 
     def __init__(self, db: AsyncSession):
         super().__init__(db, Task)
+
+    async def get_with_entry_uuid(self, uuid: UUID) -> tuple[Task | None, UUID | None]:
+        """Get task with its entry UUID in single query."""
+        stmt = (
+            select(Task, DatasetEntry.uuid.label("entry_uuid"))
+            .outerjoin(DatasetEntry, Task.dataset_entry_id == DatasetEntry.id)
+            .where(Task.uuid == uuid, Task.deleted_at.is_(None))
+        )
+        result = await self.db.execute(stmt)
+        row = result.first()
+        if row:
+            return row[0], row[1]
+        return None, None
+
+    async def get_with_related_uuids(
+        self, uuid: UUID
+    ) -> tuple[Task | None, UUID | None, UUID | None]:
+        """Get task with project and entry UUIDs in single query."""
+        stmt = (
+            select(
+                Task,
+                Project.uuid.label("project_uuid"),
+                DatasetEntry.uuid.label("entry_uuid"),
+            )
+            .outerjoin(Project, Task.project_id == Project.id)
+            .outerjoin(DatasetEntry, Task.dataset_entry_id == DatasetEntry.id)
+            .where(Task.uuid == uuid, Task.deleted_at.is_(None))
+        )
+        result = await self.db.execute(stmt)
+        row = result.first()
+        if row:
+            return row[0], row[1], row[2]
+        return None, None, None
+
+    async def get_entry_uuids_for_tasks(self, tasks: list[Task]) -> dict[int, UUID]:
+        """Batch fetch entry UUIDs for multiple tasks (N+1 prevention)."""
+        if not tasks:
+            return {}
+
+        entry_ids = [t.dataset_entry_id for t in tasks if t.dataset_entry_id]
+        if not entry_ids:
+            return {}
+
+        stmt = select(DatasetEntry.id, DatasetEntry.uuid).where(
+            DatasetEntry.id.in_(entry_ids)
+        )
+        result = await self.db.execute(stmt)
+        id_to_uuid = {row[0]: row[1] for row in result.all()}
+
+        return {t.id: id_to_uuid.get(t.dataset_entry_id) for t in tasks}
 
     async def get_list_for_project(
         self,
@@ -67,7 +117,6 @@ class TaskService(BaseService[Task, TaskCreate, TaskUpdate]):
         data: TaskCreate,
     ) -> Task:
         """Create task for a project with uniqueness validation."""
-        # Check if task already exists for this project/entry combo
         existing = await self._get_by_project_and_entry(project.id, entry.id)
         if existing:
             raise ConflictError(
