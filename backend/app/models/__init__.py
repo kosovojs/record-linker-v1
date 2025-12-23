@@ -8,7 +8,7 @@ Import order matters due to relationship dependencies.
 """
 
 # Base must be imported first
-from app.models.base import BaseTableModel, SoftDeleteMixin, SQLModel, TimestampMixin
+from app.models.base import BaseTableModel, SQLModel
 
 # Import in dependency order to avoid circular import issues
 from app.models.user import User
@@ -25,8 +25,6 @@ __all__ = [
     # Base
     "SQLModel",
     "BaseTableModel",
-    "TimestampMixin",
-    "SoftDeleteMixin",
     # Models
     "User",
     "Dataset",

@@ -86,7 +86,8 @@ class User(BaseTableModel, table=True):
 
     # Flexible settings storage - allows adding user preferences
     # without schema migrations (e.g., UI theme, notification prefs)
-    settings: dict[str, Any] = Field(
+    # Type is Any because SQLModel handles JSONB serialization
+    settings: Any = Field(
         default_factory=dict,
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
