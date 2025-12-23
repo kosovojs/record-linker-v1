@@ -4,7 +4,7 @@ Project model - top-level reconciliation work unit.
 Design notes:
 - One project = one dataset
 - Denormalized task counts avoid expensive aggregation queries
-- config uses ProjectConfig typed schema for matching parameters
+- status uses ProjectStatus enum for type safety
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.enums import ProjectStatus
 from app.schemas.jsonb_types import ProjectConfig
 
 __all__ = ["Project"]
@@ -53,9 +54,9 @@ class Project(BaseTableModel, table=True):
         sa_column=Column(Text, nullable=True),
     )
 
-    # Status
-    status: str = Field(
-        default="draft",
+    # Status - using enum for type safety
+    status: ProjectStatus = Field(
+        default=ProjectStatus.DRAFT,
         sa_column=Column(String(50), nullable=False),
     )
 
@@ -64,7 +65,7 @@ class Project(BaseTableModel, table=True):
     tasks_completed: int = Field(default=0)
     tasks_with_candidates: int = Field(default=0)
 
-    # Typed JSONB - use ProjectConfig schema for matching parameters
+    # Typed JSONB - use ProjectConfig schema
     config: dict = Field(
         default_factory=lambda: ProjectConfig().model_dump(),
         sa_column=Column(JSONB, nullable=False, server_default="{}"),

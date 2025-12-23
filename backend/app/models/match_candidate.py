@@ -3,9 +3,8 @@ MatchCandidate model - a potential Wikidata match for a task.
 
 Design notes:
 - Same wikidata_id can appear multiple times for same task (different sources)
-- score_breakdown uses CandidateScoreBreakdown typed schema
-- matched_properties uses CandidateMatchedProperties typed schema
-- extra_data uses CandidateExtraData typed schema
+- status uses CandidateStatus enum for type safety
+- source uses CandidateSource enum for type safety
 """
 
 from __future__ import annotations
@@ -18,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.enums import CandidateSource, CandidateStatus
 from app.schemas.jsonb_types import (
     CandidateExtraData,
     CandidateMatchedProperties,
@@ -54,9 +54,9 @@ class MatchCandidate(BaseTableModel, table=True):
         max_length=20,
     )
 
-    # Status
-    status: str = Field(
-        default="suggested",
+    # Status - using enum for type safety
+    status: CandidateStatus = Field(
+        default=CandidateStatus.SUGGESTED,
         sa_column=Column(String(50), nullable=False),
     )
 
@@ -67,8 +67,8 @@ class MatchCandidate(BaseTableModel, table=True):
         le=100,
     )
 
-    # Source tracking
-    source: str = Field(
+    # Source tracking - using enum for type safety
+    source: CandidateSource = Field(
         sa_column=Column(String(50), nullable=False),
     )
 
@@ -84,7 +84,7 @@ class MatchCandidate(BaseTableModel, table=True):
         sa_column=Column(JSONB, nullable=True),
     )
 
-    # Tags as JSONB list (simple list, no fancy schema needed)
+    # Tags as JSONB list
     tags: list = Field(
         default_factory=list,
         sa_column=Column(JSONB, nullable=False, server_default="[]"),

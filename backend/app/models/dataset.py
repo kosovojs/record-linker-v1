@@ -4,7 +4,7 @@ Dataset model - represents an external data source (e.g., EliteProspects).
 Design notes:
 - slug provides URL-friendly identifier for API routes
 - entry_count is denormalized for performance - avoids COUNT(*) on large tables
-- extra_data uses DatasetExtraData typed schema for structure validation
+- source_type uses DatasetSourceType enum for type safety
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.enums import DatasetSourceType
 from app.schemas.jsonb_types import DatasetExtraData
 
 __all__ = ["Dataset"]
@@ -52,13 +53,13 @@ class Dataset(BaseTableModel, table=True):
         sa_column=Column(Text, nullable=True),
     )
 
-    # Source information
+    # Source information - using enum for type safety
     source_url: Optional[str] = Field(
         default=None,
         sa_column=Column(String(500), nullable=True),
     )
-    source_type: str = Field(
-        default="web_scrape",
+    source_type: DatasetSourceType = Field(
+        default=DatasetSourceType.WEB_SCRAPE,
         sa_column=Column(String(50), nullable=False),
     )
     entity_type: str = Field(

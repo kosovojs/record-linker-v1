@@ -4,7 +4,7 @@ Task model - links a project to a dataset entry for matching.
 Design notes:
 - Denormalized accepted_wikidata_id for quick filtering
 - highest_score enables sorting by match quality
-- extra_data uses TaskExtraData typed schema
+- status uses TaskStatus enum for type safety
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.enums import TaskStatus
 from app.schemas.jsonb_types import TaskExtraData
 
 __all__ = ["Task"]
@@ -47,9 +48,9 @@ class Task(BaseTableModel, table=True):
         sa_column=Column(BigInteger, ForeignKey("dataset_entries.id"), nullable=False),
     )
 
-    # Status
-    status: str = Field(
-        default="new",
+    # Status - using enum for type safety
+    status: TaskStatus = Field(
+        default=TaskStatus.NEW,
         sa_column=Column(String(50), nullable=False),
     )
 

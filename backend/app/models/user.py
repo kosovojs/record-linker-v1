@@ -4,7 +4,7 @@ User model - system users who can own projects and review candidates.
 Design notes:
 - password_hash is nullable to support SSO-only users in the future
 - settings uses UserSettings typed schema for structure validation
-- status uses VARCHAR with enum validation in Pydantic (not DB enum)
+- status and role use enums for type safety
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.enums import UserRole, UserStatus
 from app.schemas.jsonb_types import UserSettings
 
 __all__ = ["User"]
@@ -54,13 +55,14 @@ class User(BaseTableModel, table=True):
         sa_column=Column(String(255), nullable=True),
     )
 
-    # Status fields
-    role: str = Field(
-        default="user",
+    # Status fields - using enums for type safety
+    # Stored as VARCHAR in DB, validated as enum in Python
+    role: UserRole = Field(
+        default=UserRole.USER,
         sa_column=Column(String(50), nullable=False),
     )
-    status: str = Field(
-        default="active",
+    status: UserStatus = Field(
+        default=UserStatus.ACTIVE,
         sa_column=Column(String(50), nullable=False),
     )
 
@@ -68,7 +70,6 @@ class User(BaseTableModel, table=True):
     last_login_at: Optional[datetime] = Field(default=None)
 
     # JSONB settings - use UserSettings.model_dump() when setting
-    # Parse with UserSettings.model_validate(user.settings) when reading
     settings: dict = Field(
         default_factory=lambda: UserSettings().model_dump(),
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
