@@ -9,19 +9,13 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
 from app.models.base import BaseTableModel
-
-if TYPE_CHECKING:
-    from app.models.dataset_entry import DatasetEntry
-    from app.models.match_candidate import MatchCandidate
-    from app.models.project import Project
-    from app.models.user import User
 
 __all__ = ["Task"]
 
@@ -103,9 +97,4 @@ class Task(BaseTableModel, table=True):
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Relationships
-    project: "Project" = Relationship(back_populates="tasks")
-    dataset_entry: "DatasetEntry" = Relationship(back_populates="tasks")
-    candidates: List["MatchCandidate"] = Relationship(back_populates="task")
-    # Note: accepted_candidate relationship needs sa_relationship_kwargs for non-default FK
-    # reviewed_by: "User" = Relationship() - omitted to avoid complexity
+    # Note: Relationships to project, dataset_entry, and candidates are accessed via queries

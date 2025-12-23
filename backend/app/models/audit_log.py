@@ -10,15 +10,12 @@ from __future__ import annotations
 
 import uuid as uuid_lib
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlmodel import Field, Relationship, SQLModel
-
-if TYPE_CHECKING:
-    from app.models.user import User
+from sqlmodel import Field, SQLModel
 
 __all__ = ["AuditLog"]
 
@@ -101,5 +98,4 @@ class AuditLog(SQLModel, table=True):
         sa_column=Column(Text, nullable=True),
     )
 
-    # Relationships
-    user: Optional["User"] = Relationship(back_populates="audit_logs")
+    # Note: Relationship to user is accessed via queries

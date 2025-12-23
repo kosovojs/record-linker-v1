@@ -10,18 +10,13 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
 from app.models.base import BaseTableModel
-
-if TYPE_CHECKING:
-    from app.models.dataset import Dataset
-    from app.models.task import Task
-    from app.models.user import User
 
 __all__ = ["Project"]
 
@@ -78,7 +73,4 @@ class Project(BaseTableModel, table=True):
     started_at: Optional[datetime] = Field(default=None)
     completed_at: Optional[datetime] = Field(default=None)
 
-    # Relationships
-    dataset: "Dataset" = Relationship(back_populates="projects")
-    owner: "User" = Relationship(back_populates="projects")
-    tasks: List["Task"] = Relationship(back_populates="project")
+    # Note: Relationships to dataset, owner, and tasks are accessed via queries

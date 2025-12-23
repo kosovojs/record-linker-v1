@@ -9,16 +9,12 @@ Design notes:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text, UniqueConstraint
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
 from app.models.base import BaseTableModel
-
-if TYPE_CHECKING:
-    from app.models.dataset_entry import DatasetEntry
-    from app.models.property_definition import PropertyDefinition
 
 __all__ = ["DatasetEntryProperty"]
 
@@ -73,6 +69,4 @@ class DatasetEntryProperty(BaseTableModel, table=True):
         sa_column=Column(SmallInteger, nullable=False),
     )
 
-    # Relationships
-    dataset_entry: "DatasetEntry" = Relationship(back_populates="properties")
-    property_definition: "PropertyDefinition" = Relationship(back_populates="values")
+    # Note: Relationships to dataset_entry and property_definition are accessed via queries

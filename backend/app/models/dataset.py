@@ -4,23 +4,19 @@ Dataset model - represents an external data source (e.g., EliteProspects).
 Design notes:
 - slug provides URL-friendly identifier for API routes
 - entry_count is denormalized for performance - avoids COUNT(*) on large tables
-- metadata JSONB stores source-specific info that varies per dataset
+- extra_data JSONB stores source-specific info that varies per dataset
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import Optional
 
 from sqlalchemy import Column, Index, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
 from app.models.base import BaseTableModel
-
-if TYPE_CHECKING:
-    from app.models.dataset_entry import DatasetEntry
-    from app.models.project import Project
 
 __all__ = ["Dataset"]
 
@@ -80,6 +76,4 @@ class Dataset(BaseTableModel, table=True):
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Relationships
-    entries: List["DatasetEntry"] = Relationship(back_populates="dataset")
-    projects: List["Project"] = Relationship(back_populates="dataset")
+    # Note: Relationships to entries and projects are accessed via queries

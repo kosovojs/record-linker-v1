@@ -9,18 +9,13 @@ Design notes:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
 from app.models.base import BaseTableModel
-
-if TYPE_CHECKING:
-    from app.models.dataset import Dataset
-    from app.models.dataset_entry_property import DatasetEntryProperty
-    from app.models.task import Task
 
 __all__ = ["DatasetEntry"]
 
@@ -74,7 +69,4 @@ class DatasetEntry(BaseTableModel, table=True):
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Relationships
-    dataset: "Dataset" = Relationship(back_populates="entries")
-    properties: List["DatasetEntryProperty"] = Relationship(back_populates="dataset_entry")
-    tasks: List["Task"] = Relationship(back_populates="dataset_entry")
+    # Note: Relationships to dataset, properties, and tasks are accessed via queries

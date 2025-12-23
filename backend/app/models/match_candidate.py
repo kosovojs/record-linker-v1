@@ -10,16 +10,13 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
 from app.models.base import BaseTableModel
-
-if TYPE_CHECKING:
-    from app.models.task import Task
 
 __all__ = ["MatchCandidate"]
 
@@ -104,5 +101,4 @@ class MatchCandidate(BaseTableModel, table=True):
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Relationships
-    task: "Task" = Relationship(back_populates="candidates")
+    # Note: Relationship to task is accessed via queries

@@ -9,15 +9,12 @@ Design notes:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import Optional
 
 from sqlalchemy import Column, Index, String, Text, UniqueConstraint
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
 from app.models.base import BaseTableModel
-
-if TYPE_CHECKING:
-    from app.models.dataset_entry_property import DatasetEntryProperty
 
 __all__ = ["PropertyDefinition"]
 
@@ -78,5 +75,4 @@ class PropertyDefinition(BaseTableModel, table=True):
         sa_column=Column(String(500), nullable=True),
     )
 
-    # Relationships
-    values: List["DatasetEntryProperty"] = Relationship(back_populates="property_definition")
+    # Note: Relationship to values is accessed via queries

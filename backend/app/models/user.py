@@ -5,25 +5,19 @@ Design notes:
 - password_hash is nullable to support SSO-only users in the future
 - settings JSONB allows flexible user preferences without schema changes
 - status uses VARCHAR with enum validation in Pydantic (not DB enum)
-  for easier enum evolution without migrations
-- Relationships use SQLModel's Relationship() not SQLAlchemy's relationship()
+- Relationships are defined without back_populates to avoid circular issues
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import Optional
 
 from sqlalchemy import Column, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Field, Relationship
+from sqlmodel import Field
 
 from app.models.base import BaseTableModel
-
-# TYPE_CHECKING import to avoid circular imports at runtime
-if TYPE_CHECKING:
-    from app.models.audit_log import AuditLog
-    from app.models.project import Project
 
 __all__ = ["User"]
 
@@ -79,7 +73,5 @@ class User(BaseTableModel, table=True):
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Relationships using SQLModel's Relationship()
-    # back_populates links to the other side of the relationship
-    projects: List["Project"] = Relationship(back_populates="owner")
-    audit_logs: List["AuditLog"] = Relationship(back_populates="user")
+    # Note: Relationships to projects and audit_logs are accessed via queries
+    # Example: session.exec(select(Project).where(Project.owner_id == user.id))
