@@ -25,6 +25,20 @@ from app.schemas.enums import (
     UserRole,
     UserStatus,
 )
+from app.schemas.jsonb_types import (
+    CandidateExtraData,
+    CandidateMatchedProperties,
+    CandidateScoreBreakdown,
+    DatasetEntryExtraData,
+    DatasetExtraData,
+    MatchingWeights,
+    ProjectConfig,
+    PropertyMatch,
+    SearchStrategy,
+    TaskExtraData,
+    TaskProcessingInfo,
+    UserSettings,
+)
 
 __all__ = [
     # Common
@@ -45,4 +59,17 @@ __all__ = [
     "TaskStatus",
     "UserRole",
     "UserStatus",
+    # JSONB Types
+    "CandidateExtraData",
+    "CandidateMatchedProperties",
+    "CandidateScoreBreakdown",
+    "DatasetEntryExtraData",
+    "DatasetExtraData",
+    "MatchingWeights",
+    "ProjectConfig",
+    "PropertyMatch",
+    "SearchStrategy",
+    "TaskExtraData",
+    "TaskProcessingInfo",
+    "UserSettings",
 ]
