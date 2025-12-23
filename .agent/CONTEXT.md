@@ -40,7 +40,7 @@
 - **Common Schemas** (`app/schemas/common.py`): PaginationParams, PaginatedResponse, ErrorResponse
 - **Base Model** (`app/models/base.py`): BaseTableModel with id, uuid, timestamps, soft delete
 
-#### Phase 3: ORM Models (Current)
+#### Phase 3: ORM Models
 All 9 models implemented in `app/models/`:
 
 | Model | File | Key Features |
@@ -72,11 +72,22 @@ CandidateExtraData         -> match_candidates.extra_data
 
 Each model has `get_*()` and `set_*()` helper methods for typed access.
 
-### 📋 Remaining Phases
-
 #### Phase 4: Request/Response Schemas
-- Create/Update/Read Pydantic schemas for each entity
-- API response models with UUID exposure (never internal IDs)
+All 9 entities have Base/Create/Update/Read schemas in `app/schemas/`:
+
+| Entity | Schemas | Key Features |
+|--------|---------|--------------|
+| User | UserBase, UserCreate, UserUpdate, UserRead | EmailStr validation, role/status enums |
+| Dataset | DatasetBase, DatasetCreate, DatasetUpdate, DatasetRead | Slug pattern validation |
+| PropertyDefinition | PropertyDefinitionBase, PropertyDefinitionCreate, PropertyDefinitionUpdate, PropertyDefinitionRead | Wikidata property pattern (P###) |
+| DatasetEntry | DatasetEntryBase, DatasetEntryCreate, DatasetEntryUpdate, DatasetEntryRead | UUID-based parent references |
+| DatasetEntryProperty | DatasetEntryPropertyBase, DatasetEntryPropertyCreate, DatasetEntryPropertyUpdate, DatasetEntryPropertyRead | Confidence 0-100 validation |
+| Project | ProjectBase, ProjectCreate, ProjectUpdate, ProjectRead | ProjectConfig typed JSONB |
+| Task | TaskBase, TaskCreate, TaskUpdate, TaskRead | Wikidata QID pattern (Q###) |
+| MatchCandidate | MatchCandidateBase, MatchCandidateCreate, MatchCandidateUpdate, MatchCandidateRead | Score 0-100 validation |
+| AuditLog | AuditLogCreate, AuditLogRead | No Update (immutable logs) |
+
+### 📋 Remaining Phases
 
 #### Phase 5: API Endpoints
 - CRUD endpoints for all entities
@@ -111,7 +122,7 @@ Internal `id` (BIGINT) is never exposed. Public API uses `uuid` field. Foreign k
 
 ## Test Coverage
 
-**68 tests passing** covering:
+**144 tests passing** covering:
 - Health endpoints
 - Enum values and serialization
 - Common schemas (pagination, errors)
