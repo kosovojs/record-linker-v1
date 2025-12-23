@@ -15,6 +15,23 @@ from app.main import app
 # Test database URL (using SQLite for tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
+# ============================================================================
+# JSONB → JSON compatibility for SQLite
+# SQLite doesn't have JSONB, so we need to render it as JSON (which is TEXT)
+# ============================================================================
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler
+
+
+# Patch SQLite's type compiler to handle JSONB
+def _visit_JSONB(self, type_, **kw):
+    return "JSON"
+
+
+SQLiteTypeCompiler.visit_JSONB = _visit_JSONB
+
+
+
 
 @pytest.fixture(scope="session")
 def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
