@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.enums import ProjectStatus
 from app.schemas.jsonb_types import ProjectConfig
@@ -99,8 +99,19 @@ class ProjectRead(BaseModel):
     task_count: int = Field(description="Total number of tasks")
     tasks_completed: int = Field(description="Completed tasks count")
     tasks_with_candidates: int = Field(description="Tasks with candidates count")
-    config: dict = Field(description="Project configuration")
+    config: dict = Field(default_factory=dict, description="Project configuration")
     started_at: datetime | None = Field(description="When processing started")
     completed_at: datetime | None = Field(description="When project completed")
     created_at: datetime = Field(description="When created")
     updated_at: datetime = Field(description="Last update timestamp")
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def parse_config(cls, v):
+        """Parse config from JSON string if needed (SQLite compatibility)."""
+        import json
+        if v is None:
+            return {}
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
