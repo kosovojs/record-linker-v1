@@ -6,22 +6,21 @@ Design notes:
 - settings JSONB allows flexible user preferences without schema changes
 - status uses VARCHAR with enum validation in Pydantic (not DB enum)
   for easier enum evolution without migrations
+- Relationships use SQLModel's Relationship() not SQLAlchemy's relationship()
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Column, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, relationship
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.models.base import BaseTableModel
 
 # TYPE_CHECKING import to avoid circular imports at runtime
-# These are only used for type hints, not actual code
 if TYPE_CHECKING:
     from app.models.audit_log import AuditLog
     from app.models.project import Project
@@ -41,8 +40,6 @@ class User(BaseTableModel, table=True):
 
     __tablename__ = "users"
     __table_args__ = (
-        # Partial unique index - only enforce uniqueness for non-deleted records
-        # This allows "deleting" a user and creating a new one with same email
         UniqueConstraint("email", name="uq_users_email"),
         Index("idx_users_email", "email"),
         Index("idx_users_status", "status"),
@@ -53,52 +50,36 @@ class User(BaseTableModel, table=True):
     email: str = Field(
         sa_column=Column(String(255), nullable=False),
         max_length=255,
-        description="Login identifier, must be unique",
     )
     display_name: str = Field(
         sa_column=Column(String(255), nullable=False),
         max_length=255,
-        description="Human-readable name for UI display",
     )
-    password_hash: str | None = Field(
+    password_hash: Optional[str] = Field(
         default=None,
         sa_column=Column(String(255), nullable=True),
-        description="Bcrypt hash. Null for SSO-only users.",
     )
 
-    # Status fields - use VARCHAR, enum validation happens in Pydantic layer
+    # Status fields
     role: str = Field(
         default="user",
         sa_column=Column(String(50), nullable=False),
-        description="Permission level: admin, user, viewer",
     )
     status: str = Field(
         default="active",
         sa_column=Column(String(50), nullable=False),
-        description="Account status: active, inactive, blocked, pending_verification",
     )
 
     # Tracking
-    last_login_at: datetime | None = Field(
-        default=None,
-        description="Last successful login timestamp for security auditing",
-    )
+    last_login_at: Optional[datetime] = Field(default=None)
 
-    # Flexible settings storage - allows adding user preferences
-    # without schema migrations (e.g., UI theme, notification prefs)
-    # Type is Any because SQLModel handles JSONB serialization
-    settings: Any = Field(
+    # JSONB settings - using dict default, actual type is JSONB
+    settings: dict = Field(
         default_factory=dict,
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Relationships - lazy loaded by default to avoid N+1
-    # Use selectinload() in queries when you need these
-    projects: Mapped[list["Project"]] = relationship(
-        back_populates="owner",
-        lazy="noload",  # Never auto-load, must be explicit
-    )
-    audit_logs: Mapped[list["AuditLog"]] = relationship(
-        back_populates="user",
-        lazy="noload",
-    )
+    # Relationships using SQLModel's Relationship()
+    # back_populates links to the other side of the relationship
+    projects: list["Project"] = Relationship(back_populates="owner")
+    audit_logs: list["AuditLog"] = Relationship(back_populates="user")

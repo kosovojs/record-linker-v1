@@ -3,27 +3,23 @@ MatchCandidate model - a potential Wikidata match for a task.
 
 Design notes:
 - Same wikidata_id can appear multiple times for same task (different sources)
-  This is intentional - keeps full audit trail of how candidates were found
-- score_breakdown stores per-property scores for debugging
-- matched_properties shows which fields contributed to the match
-- tags ARRAY allows flexible categorization without separate table
+- score_breakdown stores per-property scores
+- tags stored as JSONB list for SQLModel compatibility
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, relationship
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.models.base import BaseTableModel
 
 if TYPE_CHECKING:
     from app.models.task import Task
-    from app.models.user import User
 
 __all__ = ["MatchCandidate"]
 
@@ -31,10 +27,6 @@ __all__ = ["MatchCandidate"]
 class MatchCandidate(BaseTableModel, table=True):
     """
     A potential Wikidata match for a task.
-
-    Multiple candidates can exist per task, representing different
-    potential matches with varying confidence levels. Reviewers
-    accept one or reject all.
     """
 
     __tablename__ = "match_candidates"
@@ -46,8 +38,6 @@ class MatchCandidate(BaseTableModel, table=True):
         Index("idx_mc_score", "score"),
         Index("idx_mc_source", "source"),
         Index("idx_mc_reviewed_by", "reviewed_by_id"),
-        # GIN index for array containment queries on tags
-        # Index("idx_mc_tags", "tags", postgresql_using="gin"),
     )
 
     # Parent task
@@ -55,12 +45,10 @@ class MatchCandidate(BaseTableModel, table=True):
         sa_column=Column(BigInteger, ForeignKey("tasks.id"), nullable=False),
     )
 
-    # Wikidata reference - just the QID, no cached data
-    # We fetch current Wikidata info at display time to stay fresh
+    # Wikidata reference
     wikidata_id: str = Field(
         sa_column=Column(String(20), nullable=False),
         max_length=20,
-        description="Wikidata item ID (e.g., 'Q12345')",
     )
 
     # Status
@@ -74,58 +62,47 @@ class MatchCandidate(BaseTableModel, table=True):
         sa_column=Column(SmallInteger, nullable=False),
         ge=0,
         le=100,
-        description="Match confidence 0-100",
     )
 
-    # Source tracking - how was this candidate found?
+    # Source tracking
     source: str = Field(
         sa_column=Column(String(50), nullable=False),
-        description="How found: automated_search, manual, file_import, ai_suggestion",
     )
 
-    # Detailed scoring breakdown for transparency
-    # Shows score per property: {"name_similarity": 85, "date_match": 100, ...}
-    score_breakdown: dict[str, Any] | None = Field(
+    # Detailed scoring
+    score_breakdown: Optional[dict] = Field(
+        default=None,
+        sa_column=Column(JSONB, nullable=True),
+    )
+    matched_properties: Optional[dict] = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
 
-    # Evidence for the match - which properties matched
-    # {"P569": {"source": "1990-05-15", "wikidata": "1990-05-15", "match": true}}
-    matched_properties: dict[str, Any] | None = Field(
-        default=None,
-        sa_column=Column(JSONB, nullable=True),
-    )
-
-    # Tags for flexible categorization
-    # Using JSONB list instead of ARRAY for SQLModel compatibility
-    tags: list[str] = Field(
+    # Tags as JSONB list
+    tags: list = Field(
         default_factory=list,
         sa_column=Column(JSONB, nullable=False, server_default="[]"),
     )
 
     # Notes
-    notes: str | None = Field(
+    notes: Optional[str] = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )
 
     # Review tracking
-    reviewed_at: datetime | None = Field(default=None)
-    reviewed_by_id: int | None = Field(
+    reviewed_at: Optional[datetime] = Field(default=None)
+    reviewed_by_id: Optional[int] = Field(
         default=None,
         sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=True),
     )
 
-    # Additional metadata
-    metadata: dict[str, Any] = Field(
+    # Extra data
+    extra_data: dict = Field(
         default_factory=dict,
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
     # Relationships
-    task: Mapped["Task"] = relationship(
-        back_populates="candidates",
-        foreign_keys=[task_id],
-    )
-    reviewed_by: Mapped["User | None"] = relationship()
+    task: "Task" = Relationship(back_populates="candidates")

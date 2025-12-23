@@ -2,20 +2,18 @@
 DatasetEntry model - individual records from an external dataset.
 
 Design notes:
-- external_id is the stable ID from the source system (never our generated ID)
-- display_name is denormalized for efficient list views without joining properties
-- raw_data stores the original import data for debugging/reprocessing
-- unique constraint on (dataset_id, external_id) prevents duplicate imports
+- external_id is the stable ID from the source system
+- display_name is denormalized for efficient list views
+- raw_data stores the original import data for debugging
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, relationship
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.models.base import BaseTableModel
 
@@ -37,7 +35,6 @@ class DatasetEntry(BaseTableModel, table=True):
 
     __tablename__ = "dataset_entries"
     __table_args__ = (
-        # Prevent duplicate imports from same source
         UniqueConstraint("dataset_id", "external_id", name="uq_dataset_entries_external"),
         Index("idx_dataset_entries_dataset", "dataset_id"),
         Index("idx_dataset_entries_external_id", "dataset_id", "external_id"),
@@ -53,42 +50,31 @@ class DatasetEntry(BaseTableModel, table=True):
     external_id: str = Field(
         sa_column=Column(String(255), nullable=False),
         max_length=255,
-        description="Stable ID from the source system",
     )
-    external_url: str | None = Field(
+    external_url: Optional[str] = Field(
         default=None,
         sa_column=Column(String(500), nullable=True),
-        description="Direct link to this record in the source system",
     )
 
     # Denormalized display name for efficient list rendering
-    # Updated from properties (e.g., full_name) after import
-    display_name: str | None = Field(
+    display_name: Optional[str] = Field(
         default=None,
         sa_column=Column(String(500), nullable=True),
-        description="Cached name for UI (avoids property join)",
     )
 
-    # Original data - kept for debugging and potential reprocessing
-    # Not used for matching - use properties instead
-    raw_data: dict[str, Any] | None = Field(
+    # Original data - kept for debugging
+    raw_data: Optional[dict] = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
 
-    # Import metadata
-    metadata: dict[str, Any] = Field(
+    # Import extra data
+    extra_data: dict = Field(
         default_factory=dict,
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
     # Relationships
-    dataset: Mapped["Dataset"] = relationship(back_populates="entries")
-    properties: Mapped[list["DatasetEntryProperty"]] = relationship(
-        back_populates="dataset_entry",
-        lazy="noload",
-    )
-    tasks: Mapped[list["Task"]] = relationship(
-        back_populates="dataset_entry",
-        lazy="noload",
-    )
+    dataset: "Dataset" = Relationship(back_populates="entries")
+    properties: list["DatasetEntryProperty"] = Relationship(back_populates="dataset_entry")
+    tasks: list["Task"] = Relationship(back_populates="dataset_entry")

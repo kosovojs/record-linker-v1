@@ -2,22 +2,18 @@
 Task model - links a project to a dataset entry for matching.
 
 Design notes:
-- Denormalized accepted_wikidata_id allows filtering matched entries
-  without joining through candidates table
+- Denormalized accepted_wikidata_id for quick filtering
 - highest_score enables sorting by match quality
-- unique constraint prevents same entry appearing twice in a project
-- reviewed_by_id tracks who made the decision for audit purposes
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, relationship
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.models.base import BaseTableModel
 
@@ -33,15 +29,10 @@ __all__ = ["Task"]
 class Task(BaseTableModel, table=True):
     """
     A unit of work: match one dataset entry to Wikidata.
-
-    Each task represents one entry to be reconciled. Tasks can have
-    multiple candidates (potential Wikidata matches), and the reviewer
-    accepts one or rejects all.
     """
 
     __tablename__ = "tasks"
     __table_args__ = (
-        # Same entry can't be in same project twice
         UniqueConstraint("project_id", "dataset_entry_id", name="uq_tasks_project_entry"),
         Index("idx_tasks_project", "project_id"),
         Index("idx_tasks_entry", "dataset_entry_id"),
@@ -66,72 +57,55 @@ class Task(BaseTableModel, table=True):
         sa_column=Column(String(50), nullable=False),
     )
 
-    # Accepted match - denormalized for query performance
-    # When a candidate is accepted, we copy its info here to avoid
-    # joining through match_candidates for common queries
-    accepted_candidate_id: int | None = Field(
+    # Accepted match - denormalized
+    accepted_candidate_id: Optional[int] = Field(
         default=None,
         sa_column=Column(BigInteger, ForeignKey("match_candidates.id"), nullable=True),
     )
-    accepted_wikidata_id: str | None = Field(
+    accepted_wikidata_id: Optional[str] = Field(
         default=None,
         sa_column=Column(String(20), nullable=True),
-        description="Accepted QID (e.g., 'Q12345') for quick filtering",
     )
 
-    # Candidate summary - denormalized for list views
-    candidate_count: int = Field(
-        default=0,
-        description="Number of candidates found",
-    )
-    highest_score: int | None = Field(
+    # Candidate summary
+    candidate_count: int = Field(default=0)
+    highest_score: Optional[int] = Field(
         default=None,
         sa_column=Column(SmallInteger, nullable=True),
         ge=0,
         le=100,
-        description="Best candidate score for sorting",
     )
 
     # Processing timestamps
-    processing_started_at: datetime | None = Field(default=None)
-    processing_completed_at: datetime | None = Field(default=None)
+    processing_started_at: Optional[datetime] = Field(default=None)
+    processing_completed_at: Optional[datetime] = Field(default=None)
 
     # Review tracking
-    reviewed_at: datetime | None = Field(default=None)
-    reviewed_by_id: int | None = Field(
+    reviewed_at: Optional[datetime] = Field(default=None)
+    reviewed_by_id: Optional[int] = Field(
         default=None,
         sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=True),
     )
-    notes: str | None = Field(
+    notes: Optional[str] = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
-        description="Reviewer notes about this decision",
     )
 
     # Error handling
-    error_message: str | None = Field(
+    error_message: Optional[str] = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
-        description="Error details if status is 'failed'",
     )
 
-    # Processing metadata
-    metadata: dict[str, Any] = Field(
+    # Extra data
+    extra_data: dict = Field(
         default_factory=dict,
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
     # Relationships
-    project: Mapped["Project"] = relationship(back_populates="tasks")
-    dataset_entry: Mapped["DatasetEntry"] = relationship(back_populates="tasks")
-    reviewed_by: Mapped["User | None"] = relationship()
-    candidates: Mapped[list["MatchCandidate"]] = relationship(
-        back_populates="task",
-        lazy="noload",
-        # Don't load accepted_candidate through this to avoid confusion
-        foreign_keys="MatchCandidate.task_id",
-    )
-    accepted_candidate: Mapped["MatchCandidate | None"] = relationship(
-        foreign_keys=[accepted_candidate_id],
-        lazy="joined",  # Usually want this when loading task
-    )
+    project: "Project" = Relationship(back_populates="tasks")
+    dataset_entry: "DatasetEntry" = Relationship(back_populates="tasks")
+    candidates: list["MatchCandidate"] = Relationship(back_populates="task")
+    # Note: accepted_candidate relationship needs sa_relationship_kwargs for non-default FK
+    # reviewed_by: "User" = Relationship() - omitted to avoid complexity

@@ -2,21 +2,19 @@
 Project model - top-level reconciliation work unit.
 
 Design notes:
-- One project = one dataset (no cross-dataset projects for simplicity)
+- One project = one dataset
 - Denormalized task counts avoid expensive aggregation queries
-- config JSONB stores matching parameters that vary per project
-- State machine enforced at application layer, not DB level
+- config JSONB stores matching parameters
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, relationship
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.models.base import BaseTableModel
 
@@ -31,10 +29,6 @@ __all__ = ["Project"]
 class Project(BaseTableModel, table=True):
     """
     A reconciliation project for matching dataset entries to Wikidata.
-
-    Projects allow breaking large datasets into manageable batches
-    and trying different matching configurations. One dataset can
-    have multiple projects (e.g., "Hockey players 2020s", "Coaches").
     """
 
     __tablename__ = "projects"
@@ -57,57 +51,34 @@ class Project(BaseTableModel, table=True):
     name: str = Field(
         sa_column=Column(String(255), nullable=False),
         max_length=255,
-        description="Project name (e.g., 'EP Players - Batch 1')",
     )
-    description: str | None = Field(
+    description: Optional[str] = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )
 
-    # Status - validated by Pydantic, not DB
+    # Status
     status: str = Field(
         default="draft",
         sa_column=Column(String(50), nullable=False),
     )
 
-    # Denormalized counts - updated by triggers or application code
-    # Avoids COUNT(*) on large task tables
-    task_count: int = Field(
-        default=0,
-        description="Total tasks in project",
-    )
-    tasks_completed: int = Field(
-        default=0,
-        description="Tasks in terminal states (reviewed, skipped, etc.)",
-    )
-    tasks_with_candidates: int = Field(
-        default=0,
-        description="Tasks with at least one candidate",
-    )
+    # Denormalized counts
+    task_count: int = Field(default=0)
+    tasks_completed: int = Field(default=0)
+    tasks_with_candidates: int = Field(default=0)
 
-    # Project configuration - matching parameters
-    # auto_accept_threshold: auto-accept candidates above this score
-    # search_strategies: which search methods to use
-    # matching_weights: property weights for scoring
-    config: dict[str, Any] = Field(
+    # Project configuration
+    config: dict = Field(
         default_factory=dict,
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
     # Timing
-    started_at: datetime | None = Field(
-        default=None,
-        description="When processing began",
-    )
-    completed_at: datetime | None = Field(
-        default=None,
-        description="When all tasks were reviewed",
-    )
+    started_at: Optional[datetime] = Field(default=None)
+    completed_at: Optional[datetime] = Field(default=None)
 
     # Relationships
-    dataset: Mapped["Dataset"] = relationship(back_populates="projects")
-    owner: Mapped["User"] = relationship(back_populates="projects")
-    tasks: Mapped[list["Task"]] = relationship(
-        back_populates="project",
-        lazy="noload",
-    )
+    dataset: "Dataset" = Relationship(back_populates="projects")
+    owner: "User" = Relationship(back_populates="projects")
+    tasks: list["Task"] = Relationship(back_populates="project")
