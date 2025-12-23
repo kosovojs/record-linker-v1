@@ -4,6 +4,7 @@ Task model - links a project to a dataset entry for matching.
 Design notes:
 - Denormalized accepted_wikidata_id for quick filtering
 - highest_score enables sorting by match quality
+- extra_data uses TaskExtraData typed schema
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.jsonb_types import TaskExtraData
 
 __all__ = ["Task"]
 
@@ -91,10 +93,17 @@ class Task(BaseTableModel, table=True):
         sa_column=Column(Text, nullable=True),
     )
 
-    # Extra data
+    # Typed JSONB - use TaskExtraData schema
     extra_data: dict = Field(
-        default_factory=dict,
+        default_factory=lambda: TaskExtraData().model_dump(),
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Note: Relationships to project, dataset_entry, and candidates are accessed via queries
+    # Helper methods for typed access
+    def get_extra_data(self) -> TaskExtraData:
+        """Get extra_data as typed Pydantic model."""
+        return TaskExtraData.model_validate(self.extra_data)
+
+    def set_extra_data(self, data: TaskExtraData) -> None:
+        """Set extra_data from typed Pydantic model."""
+        self.extra_data = data.model_dump()

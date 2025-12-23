@@ -4,7 +4,7 @@ Dataset model - represents an external data source (e.g., EliteProspects).
 Design notes:
 - slug provides URL-friendly identifier for API routes
 - entry_count is denormalized for performance - avoids COUNT(*) on large tables
-- extra_data JSONB stores source-specific info that varies per dataset
+- extra_data uses DatasetExtraData typed schema for structure validation
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.jsonb_types import DatasetExtraData
 
 __all__ = ["Dataset"]
 
@@ -70,10 +71,17 @@ class Dataset(BaseTableModel, table=True):
     # Sync tracking
     last_synced_at: Optional[datetime] = Field(default=None)
 
-    # Flexible extra data - varies by source (version, license, contact, etc.)
+    # Typed JSONB - use DatasetExtraData schema
     extra_data: dict = Field(
-        default_factory=dict,
+        default_factory=lambda: DatasetExtraData().model_dump(),
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Note: Relationships to entries and projects are accessed via queries
+    # Helper methods for typed access
+    def get_extra_data(self) -> DatasetExtraData:
+        """Get extra_data as typed Pydantic model."""
+        return DatasetExtraData.model_validate(self.extra_data)
+
+    def set_extra_data(self, data: DatasetExtraData) -> None:
+        """Set extra_data from typed Pydantic model."""
+        self.extra_data = data.model_dump()

@@ -3,9 +3,8 @@ User model - system users who can own projects and review candidates.
 
 Design notes:
 - password_hash is nullable to support SSO-only users in the future
-- settings JSONB allows flexible user preferences without schema changes
+- settings uses UserSettings typed schema for structure validation
 - status uses VARCHAR with enum validation in Pydantic (not DB enum)
-- Relationships are defined without back_populates to avoid circular issues
 """
 
 from __future__ import annotations
@@ -18,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.jsonb_types import UserSettings
 
 __all__ = ["User"]
 
@@ -67,11 +67,18 @@ class User(BaseTableModel, table=True):
     # Tracking
     last_login_at: Optional[datetime] = Field(default=None)
 
-    # JSONB settings - using dict default, actual type is JSONB
+    # JSONB settings - use UserSettings.model_dump() when setting
+    # Parse with UserSettings.model_validate(user.settings) when reading
     settings: dict = Field(
-        default_factory=dict,
+        default_factory=lambda: UserSettings().model_dump(),
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Note: Relationships to projects and audit_logs are accessed via queries
-    # Example: session.exec(select(Project).where(Project.owner_id == user.id))
+    # Helper methods for typed access
+    def get_settings(self) -> UserSettings:
+        """Get settings as typed Pydantic model."""
+        return UserSettings.model_validate(self.settings)
+
+    def set_settings(self, settings: UserSettings) -> None:
+        """Set settings from typed Pydantic model."""
+        self.settings = settings.model_dump()

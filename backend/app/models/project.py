@@ -4,7 +4,7 @@ Project model - top-level reconciliation work unit.
 Design notes:
 - One project = one dataset
 - Denormalized task counts avoid expensive aggregation queries
-- config JSONB stores matching parameters
+- config uses ProjectConfig typed schema for matching parameters
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.jsonb_types import ProjectConfig
 
 __all__ = ["Project"]
 
@@ -63,9 +64,9 @@ class Project(BaseTableModel, table=True):
     tasks_completed: int = Field(default=0)
     tasks_with_candidates: int = Field(default=0)
 
-    # Project configuration
+    # Typed JSONB - use ProjectConfig schema for matching parameters
     config: dict = Field(
-        default_factory=dict,
+        default_factory=lambda: ProjectConfig().model_dump(),
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
@@ -73,4 +74,11 @@ class Project(BaseTableModel, table=True):
     started_at: Optional[datetime] = Field(default=None)
     completed_at: Optional[datetime] = Field(default=None)
 
-    # Note: Relationships to dataset, owner, and tasks are accessed via queries
+    # Helper methods for typed access
+    def get_config(self) -> ProjectConfig:
+        """Get config as typed Pydantic model."""
+        return ProjectConfig.model_validate(self.config)
+
+    def set_config(self, config: ProjectConfig) -> None:
+        """Set config from typed Pydantic model."""
+        self.config = config.model_dump()

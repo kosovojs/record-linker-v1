@@ -3,8 +3,9 @@ MatchCandidate model - a potential Wikidata match for a task.
 
 Design notes:
 - Same wikidata_id can appear multiple times for same task (different sources)
-- score_breakdown stores per-property scores
-- tags stored as JSONB list for SQLModel compatibility
+- score_breakdown uses CandidateScoreBreakdown typed schema
+- matched_properties uses CandidateMatchedProperties typed schema
+- extra_data uses CandidateExtraData typed schema
 """
 
 from __future__ import annotations
@@ -17,6 +18,11 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.jsonb_types import (
+    CandidateExtraData,
+    CandidateMatchedProperties,
+    CandidateScoreBreakdown,
+)
 
 __all__ = ["MatchCandidate"]
 
@@ -66,17 +72,19 @@ class MatchCandidate(BaseTableModel, table=True):
         sa_column=Column(String(50), nullable=False),
     )
 
-    # Detailed scoring
+    # Typed JSONB - CandidateScoreBreakdown schema
     score_breakdown: Optional[dict] = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
+
+    # Typed JSONB - CandidateMatchedProperties schema
     matched_properties: Optional[dict] = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
 
-    # Tags as JSONB list
+    # Tags as JSONB list (simple list, no fancy schema needed)
     tags: list = Field(
         default_factory=list,
         sa_column=Column(JSONB, nullable=False, server_default="[]"),
@@ -95,10 +103,37 @@ class MatchCandidate(BaseTableModel, table=True):
         sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=True),
     )
 
-    # Extra data
+    # Typed JSONB - CandidateExtraData schema
     extra_data: dict = Field(
-        default_factory=dict,
+        default_factory=lambda: CandidateExtraData().model_dump(),
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Note: Relationship to task is accessed via queries
+    # Helper methods for typed access
+    def get_score_breakdown(self) -> Optional[CandidateScoreBreakdown]:
+        """Get score_breakdown as typed Pydantic model."""
+        if self.score_breakdown is None:
+            return None
+        return CandidateScoreBreakdown.model_validate(self.score_breakdown)
+
+    def set_score_breakdown(self, data: CandidateScoreBreakdown) -> None:
+        """Set score_breakdown from typed Pydantic model."""
+        self.score_breakdown = data.model_dump()
+
+    def get_matched_properties(self) -> Optional[CandidateMatchedProperties]:
+        """Get matched_properties as typed Pydantic model."""
+        if self.matched_properties is None:
+            return None
+        return CandidateMatchedProperties.model_validate(self.matched_properties)
+
+    def set_matched_properties(self, data: CandidateMatchedProperties) -> None:
+        """Set matched_properties from typed Pydantic model."""
+        self.matched_properties = data.model_dump()
+
+    def get_extra_data(self) -> CandidateExtraData:
+        """Get extra_data as typed Pydantic model."""
+        return CandidateExtraData.model_validate(self.extra_data)
+
+    def set_extra_data(self, data: CandidateExtraData) -> None:
+        """Set extra_data from typed Pydantic model."""
+        self.extra_data = data.model_dump()

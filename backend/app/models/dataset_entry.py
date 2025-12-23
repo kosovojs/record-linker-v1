@@ -4,7 +4,7 @@ DatasetEntry model - individual records from an external dataset.
 Design notes:
 - external_id is the stable ID from the source system
 - display_name is denormalized for efficient list views
-- raw_data stores the original import data for debugging
+- extra_data uses DatasetEntryExtraData typed schema
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
+from app.schemas.jsonb_types import DatasetEntryExtraData
 
 __all__ = ["DatasetEntry"]
 
@@ -57,16 +58,23 @@ class DatasetEntry(BaseTableModel, table=True):
         sa_column=Column(String(500), nullable=True),
     )
 
-    # Original data - kept for debugging
+    # Original data - kept for debugging (no typed schema, truly raw)
     raw_data: Optional[dict] = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
 
-    # Import extra data
+    # Typed JSONB - use DatasetEntryExtraData schema
     extra_data: dict = Field(
-        default_factory=dict,
+        default_factory=lambda: DatasetEntryExtraData().model_dump(),
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
 
-    # Note: Relationships to dataset, properties, and tasks are accessed via queries
+    # Helper methods for typed access
+    def get_extra_data(self) -> DatasetEntryExtraData:
+        """Get extra_data as typed Pydantic model."""
+        return DatasetEntryExtraData.model_validate(self.extra_data)
+
+    def set_extra_data(self, data: DatasetEntryExtraData) -> None:
+        """Set extra_data from typed Pydantic model."""
+        self.extra_data = data.model_dump()
