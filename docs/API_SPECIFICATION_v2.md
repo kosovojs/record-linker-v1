@@ -377,7 +377,7 @@ When `POST /projects/{uuid}/start` is called, what should be the resulting statu
 - C) `processing` (immediately start searching)
 
 **Your Answer:**
-
+B
 ---
 
 ### RQ2: Task Creation Strategy on Start
@@ -390,7 +390,7 @@ For `POST /projects/{uuid}/start` with no `entry_uuids`:
 - C) Create tasks for first N entries, with pagination/continuation
 
 **Your Answer:**
-
+B
 ---
 
 ### RQ3: Export Format Details
@@ -403,7 +403,7 @@ For `GET /projects/{uuid}/export`:
 - C) Implement CSV only (more common for data export)
 
 **Your Answer:**
-
+B
 ---
 
 ### RQ4: Audit Log Granularity
@@ -416,7 +416,7 @@ For bulk operations, should we create:
 - C) One summary log + one per-item only on errors
 
 **Your Answer:**
-
+B, but add context from A
 ---
 
 ### RQ5: Optional Candidate Details on Task List
@@ -430,7 +430,7 @@ When listing tasks (`GET /projects/{uuid}/tasks`), should we include:
 - D) Full candidates array (could be large)
 
 **Your Answer:**
-
+A, but when we have some accepted candidate, then add the uuid of it
 ---
 
 ### RQ6: Entry Details in Task Response
@@ -443,7 +443,7 @@ When getting a task, should we include the full dataset entry details?
 - C) Include full entry object nested
 
 **Your Answer:**
-
+C
 ---
 
 ## Files to Create
