@@ -44,6 +44,12 @@ deleted_at      : TIMESTAMP WITH TIME ZONE, NULLABLE
 - Indexes: `idx_{table}_{columns}`
 - Unique constraints: `uq_{table}_{columns}`
 
+### Enum Handling
+> **Important**: Enums are NOT stored as database types.
+> All enum columns use `VARCHAR` in the database.
+> Enum definitions and validation happen in FastAPI (Pydantic models).
+> This allows easier enum evolution without database migrations.
+
 ---
 
 ## Core Entities
@@ -78,17 +84,22 @@ Fields:
     type: VARCHAR(50)
     nullable: false
     default: 'user'
-    enum: [admin, user, viewer]
+    enum_values: [admin, user, viewer]  # Defined in FastAPI, not DB
     description: |
       - admin: Full access, can manage users
       - user: Can create/manage own projects
       - viewer: Read-only access
 
-  is_active:
-    type: BOOLEAN
+  status:
+    type: VARCHAR(50)
     nullable: false
-    default: true
-    description: Whether user can log in
+    default: 'active'
+    enum_values: [active, inactive, blocked, pending_verification]  # Defined in FastAPI
+    description: |
+      - active: Can log in and use system
+      - inactive: Account disabled by user
+      - blocked: Account blocked by admin
+      - pending_verification: Awaiting email verification
 
   last_login_at:
     type: TIMESTAMP WITH TIME ZONE
@@ -104,6 +115,7 @@ Fields:
 Indexes:
   - idx_users_email (email) WHERE deleted_at IS NULL
   - idx_users_role (role)
+  - idx_users_status (status)
 
 Constraints:
   - uq_users_email: UNIQUE(email) WHERE deleted_at IS NULL
@@ -150,7 +162,7 @@ Fields:
     type: VARCHAR(50)
     nullable: false
     default: 'web_scrape'
-    enum: [web_scrape, api, file_import, manual]
+    enum_values: [web_scrape, api, file_import, manual]  # Defined in FastAPI
     description: How data was obtained
 
   entity_type:
@@ -221,7 +233,7 @@ Fields:
     type: VARCHAR(50)
     nullable: false
     default: 'text'
-    enum: [text, date, number, url, email, identifier]
+    enum_values: [text, date, number, url, email, identifier]  # Defined in FastAPI
     description: |
       Hint for UI rendering and validation.
       Note: All values stored as TEXT in EAV table.
@@ -358,7 +370,7 @@ Fields:
     references: dataset_entries(id)
     description: Parent entry
 
-  property_definition_id:
+  property_id:
     type: BIGINT
     nullable: false
     references: property_definitions(id)
@@ -390,7 +402,7 @@ Fields:
     type: VARCHAR(50)
     nullable: false
     default: 'import'
-    enum: [import, manual, derived, api]
+    enum_values: [import, manual, derived, api]  # Defined in FastAPI
     description: How this value was obtained
 
   ordinal:
@@ -404,15 +416,15 @@ Fields:
 
 Indexes:
   - idx_dep_entry (dataset_entry_id) WHERE deleted_at IS NULL
-  - idx_dep_property (property_definition_id) WHERE deleted_at IS NULL
-  - idx_dep_entry_property (dataset_entry_id, property_definition_id) WHERE deleted_at IS NULL
+  - idx_dep_property (property_id) WHERE deleted_at IS NULL
+  - idx_dep_entry_property (dataset_entry_id, property_id) WHERE deleted_at IS NULL
   - idx_dep_value_normalized (value_normalized) WHERE deleted_at IS NULL AND value_normalized IS NOT NULL
   - idx_dep_value_fulltext USING GIN (to_tsvector('simple', value))  -- Full-text search
 
 Constraints:
-  - uq_dep_entry_property_ordinal: UNIQUE(dataset_entry_id, property_definition_id, ordinal) WHERE deleted_at IS NULL
+  - uq_dep_entry_property_ordinal: UNIQUE(dataset_entry_id, property_id, ordinal) WHERE deleted_at IS NULL
   - fk_dep_entry: FOREIGN KEY (dataset_entry_id) REFERENCES dataset_entries(id)
-  - fk_dep_property: FOREIGN KEY (property_definition_id) REFERENCES property_definitions(id)
+  - fk_dep_property: FOREIGN KEY (property_id) REFERENCES property_definitions(id)
 ```
 
 ---
@@ -457,18 +469,9 @@ Fields:
     type: VARCHAR(50)
     nullable: false
     default: 'draft'
-    enum:
-      - draft
-      - active
-      - pending_search
-      - search_in_progress
-      - search_completed
-      - pending_processing
-      - processing
-      - processing_failed
-      - review_ready
-      - completed
-      - archived
+    # enum_values defined in FastAPI: draft, active, pending_search, search_in_progress,
+    # search_completed, pending_processing, processing, processing_failed,
+    # review_ready, completed, archived
     description: Current project status
 
   # Denormalized counts for performance
@@ -551,17 +554,9 @@ Fields:
     type: VARCHAR(50)
     nullable: false
     default: 'new'
-    enum:
-      - new
-      - queued_for_processing
-      - processing
-      - failed
-      - no_candidates_found
-      - awaiting_review
-      - reviewed
-      - auto_confirmed
-      - skipped
-      - knowledge_based
+    # enum_values defined in FastAPI: new, queued_for_processing, processing,
+    # failed, no_candidates_found, awaiting_review, reviewed, auto_confirmed,
+    # skipped, knowledge_based
     description: Current task status
 
   # Accepted match (denormalized for quick access)
@@ -680,10 +675,7 @@ Fields:
     type: VARCHAR(50)
     nullable: false
     default: 'suggested'
-    enum:
-      - suggested
-      - accepted
-      - rejected
+    # enum_values defined in FastAPI: suggested, accepted, rejected
     description: Current candidate status
 
   score:
@@ -695,12 +687,8 @@ Fields:
   source:
     type: VARCHAR(50)
     nullable: false
-    enum:
-      - automated_search
-      - manual
-      - file_import
-      - ai_suggestion
-      - knowledge_base
+    # enum_values defined in FastAPI: automated_search, manual, file_import,
+    # ai_suggestion, knowledge_base
     description: How this candidate was found
 
   # Scoring breakdown
