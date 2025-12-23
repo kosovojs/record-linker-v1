@@ -10,7 +10,6 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -73,13 +72,13 @@ class MatchCandidate(BaseTableModel, table=True):
     )
 
     # Typed JSONB - CandidateScoreBreakdown schema
-    score_breakdown: Optional[dict] = Field(
+    score_breakdown: dict | None = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
 
     # Typed JSONB - CandidateMatchedProperties schema
-    matched_properties: Optional[dict] = Field(
+    matched_properties: dict | None = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
@@ -91,14 +90,14 @@ class MatchCandidate(BaseTableModel, table=True):
     )
 
     # Notes
-    notes: Optional[str] = Field(
+    notes: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )
 
     # Review tracking
-    reviewed_at: Optional[datetime] = Field(default=None)
-    reviewed_by_id: Optional[int] = Field(
+    reviewed_at: datetime | None = Field(default=None)
+    reviewed_by_id: int | None = Field(
         default=None,
         sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=True),
     )
@@ -110,7 +109,7 @@ class MatchCandidate(BaseTableModel, table=True):
     )
 
     # Helper methods for typed access
-    def get_score_breakdown(self) -> Optional[CandidateScoreBreakdown]:
+    def get_score_breakdown(self) -> CandidateScoreBreakdown | None:
         """Get score_breakdown as typed Pydantic model."""
         if self.score_breakdown is None:
             return None
@@ -120,7 +119,7 @@ class MatchCandidate(BaseTableModel, table=True):
         """Set score_breakdown from typed Pydantic model."""
         self.score_breakdown = data.model_dump()
 
-    def get_matched_properties(self) -> Optional[CandidateMatchedProperties]:
+    def get_matched_properties(self) -> CandidateMatchedProperties | None:
         """Get matched_properties as typed Pydantic model."""
         if self.matched_properties is None:
             return None

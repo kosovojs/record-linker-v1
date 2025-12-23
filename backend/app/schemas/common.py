@@ -11,7 +11,7 @@ Provides:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -46,7 +46,7 @@ class PaginationParams(BaseModel):
         return (self.page - 1) * self.page_size
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T](BaseModel):
     """
     Generic paginated response wrapper.
 

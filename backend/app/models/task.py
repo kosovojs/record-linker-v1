@@ -10,9 +10,17 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    ForeignKey,
+    Index,
+    SmallInteger,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
@@ -55,18 +63,18 @@ class Task(BaseTableModel, table=True):
     )
 
     # Accepted match - denormalized
-    accepted_candidate_id: Optional[int] = Field(
+    accepted_candidate_id: int | None = Field(
         default=None,
         sa_column=Column(BigInteger, ForeignKey("match_candidates.id"), nullable=True),
     )
-    accepted_wikidata_id: Optional[str] = Field(
+    accepted_wikidata_id: str | None = Field(
         default=None,
         sa_column=Column(String(20), nullable=True),
     )
 
     # Candidate summary
     candidate_count: int = Field(default=0)
-    highest_score: Optional[int] = Field(
+    highest_score: int | None = Field(
         default=None,
         sa_column=Column(SmallInteger, nullable=True),
         ge=0,
@@ -74,22 +82,22 @@ class Task(BaseTableModel, table=True):
     )
 
     # Processing timestamps
-    processing_started_at: Optional[datetime] = Field(default=None)
-    processing_completed_at: Optional[datetime] = Field(default=None)
+    processing_started_at: datetime | None = Field(default=None)
+    processing_completed_at: datetime | None = Field(default=None)
 
     # Review tracking
-    reviewed_at: Optional[datetime] = Field(default=None)
-    reviewed_by_id: Optional[int] = Field(
+    reviewed_at: datetime | None = Field(default=None)
+    reviewed_by_id: int | None = Field(
         default=None,
         sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=True),
     )
-    notes: Optional[str] = Field(
+    notes: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )
 
     # Error handling
-    error_message: Optional[str] = Field(
+    error_message: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )

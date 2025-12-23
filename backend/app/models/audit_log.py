@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import uuid as uuid_lib
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -37,7 +36,7 @@ class AuditLog(SQLModel, table=True):
     )
 
     # Primary key - no soft delete
-    id: Optional[int] = Field(
+    id: int | None = Field(
         default=None,
         sa_column=Column(BigInteger, primary_key=True, autoincrement=True),
     )
@@ -51,7 +50,7 @@ class AuditLog(SQLModel, table=True):
     )
 
     # Who performed the action
-    user_id: Optional[int] = Field(
+    user_id: int | None = Field(
         default=None,
         sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=True),
     )
@@ -67,21 +66,21 @@ class AuditLog(SQLModel, table=True):
         sa_column=Column(String(50), nullable=False),
         max_length=50,
     )
-    entity_id: Optional[int] = Field(
+    entity_id: int | None = Field(
         default=None,
         sa_column=Column(BigInteger, nullable=True),
     )
-    entity_uuid: Optional[uuid_lib.UUID] = Field(
+    entity_uuid: uuid_lib.UUID | None = Field(
         default=None,
         sa_column=Column(PG_UUID(as_uuid=True), nullable=True),
     )
 
     # State changes
-    old_value: Optional[dict] = Field(
+    old_value: dict | None = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
-    new_value: Optional[dict] = Field(
+    new_value: dict | None = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
@@ -93,7 +92,7 @@ class AuditLog(SQLModel, table=True):
     )
 
     # Description
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )

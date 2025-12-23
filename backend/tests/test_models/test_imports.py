@@ -1,7 +1,5 @@
 """Tests for model imports and relationships."""
 
-import pytest
-
 
 class TestModelImports:
     """Test that all models can be imported correctly."""
@@ -71,28 +69,29 @@ class TestModelInheritance:
 
     def test_user_inherits_base(self):
         """Test User inherits from BaseTableModel."""
-        from app.models import User, BaseTableModel
+        from app.models import BaseTableModel, User
         assert issubclass(User, BaseTableModel)
 
     def test_dataset_inherits_base(self):
         """Test Dataset inherits from BaseTableModel."""
-        from app.models import Dataset, BaseTableModel
+        from app.models import BaseTableModel, Dataset
         assert issubclass(Dataset, BaseTableModel)
 
     def test_project_inherits_base(self):
         """Test Project inherits from BaseTableModel."""
-        from app.models import Project, BaseTableModel
+        from app.models import BaseTableModel, Project
         assert issubclass(Project, BaseTableModel)
 
     def test_task_inherits_base(self):
         """Test Task inherits from BaseTableModel."""
-        from app.models import Task, BaseTableModel
+        from app.models import BaseTableModel, Task
         assert issubclass(Task, BaseTableModel)
 
     def test_audit_log_does_not_inherit_base(self):
         """Test AuditLog does NOT inherit BaseTableModel (no soft delete)."""
-        from app.models import AuditLog, BaseTableModel
         from sqlmodel import SQLModel
+
+        from app.models import AuditLog
         # AuditLog should inherit directly from SQLModel, not BaseTableModel
         assert issubclass(AuditLog, SQLModel)
         # AuditLog should NOT have is_deleted property

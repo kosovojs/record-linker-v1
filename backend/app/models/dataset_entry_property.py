@@ -9,9 +9,16 @@ Design notes:
 
 from __future__ import annotations
 
-from typing import Optional
-
-from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    ForeignKey,
+    Index,
+    SmallInteger,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlmodel import Field
 
 from app.models.base import BaseTableModel
@@ -51,13 +58,13 @@ class DatasetEntryProperty(BaseTableModel, table=True):
     value: str = Field(
         sa_column=Column(Text, nullable=False),
     )
-    value_normalized: Optional[str] = Field(
+    value_normalized: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )
 
     # Data quality tracking
-    confidence: Optional[int] = Field(default=None, ge=0, le=100)
+    confidence: int | None = Field(default=None, ge=0, le=100)
     source: str = Field(
         default="import",
         sa_column=Column(String(50), nullable=False),

@@ -1,8 +1,5 @@
 """Tests for common schemas."""
 
-from uuid import uuid4
-
-import pytest
 
 from app.schemas.common import (
     ErrorResponse,

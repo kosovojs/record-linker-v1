@@ -10,7 +10,6 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -49,7 +48,7 @@ class Project(BaseTableModel, table=True):
         sa_column=Column(String(255), nullable=False),
         max_length=255,
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )
@@ -72,8 +71,8 @@ class Project(BaseTableModel, table=True):
     )
 
     # Timing
-    started_at: Optional[datetime] = Field(default=None)
-    completed_at: Optional[datetime] = Field(default=None)
+    started_at: datetime | None = Field(default=None)
+    completed_at: datetime | None = Field(default=None)
 
     # Helper methods for typed access
     def get_config(self) -> ProjectConfig:

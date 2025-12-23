@@ -12,7 +12,6 @@ from app.config import Settings
 from app.database import get_db
 from app.main import app
 
-
 # Test database URL (using SQLite for tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 

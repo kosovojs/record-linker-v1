@@ -3,12 +3,9 @@
 import pytest
 
 from app.schemas.jsonb_types import (
-    CandidateExtraData,
     CandidateMatchedProperties,
     CandidateScoreBreakdown,
-    DatasetEntryExtraData,
     DatasetExtraData,
-    MatchingWeights,
     ProjectConfig,
     PropertyMatch,
     SearchStrategy,

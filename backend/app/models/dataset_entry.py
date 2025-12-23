@@ -9,8 +9,6 @@ Design notes:
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
@@ -47,19 +45,19 @@ class DatasetEntry(BaseTableModel, table=True):
         sa_column=Column(String(255), nullable=False),
         max_length=255,
     )
-    external_url: Optional[str] = Field(
+    external_url: str | None = Field(
         default=None,
         sa_column=Column(String(500), nullable=True),
     )
 
     # Denormalized display name for efficient list rendering
-    display_name: Optional[str] = Field(
+    display_name: str | None = Field(
         default=None,
         sa_column=Column(String(500), nullable=True),
     )
 
     # Original data - kept for debugging (no typed schema, truly raw)
-    raw_data: Optional[dict] = Field(
+    raw_data: dict | None = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )

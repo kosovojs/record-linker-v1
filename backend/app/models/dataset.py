@@ -10,7 +10,6 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import Column, Index, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -48,13 +47,13 @@ class Dataset(BaseTableModel, table=True):
         sa_column=Column(String(100), nullable=False),
         max_length=100,
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )
 
     # Source information - using enum for type safety
-    source_url: Optional[str] = Field(
+    source_url: str | None = Field(
         default=None,
         sa_column=Column(String(500), nullable=True),
     )
@@ -70,7 +69,7 @@ class Dataset(BaseTableModel, table=True):
     entry_count: int = Field(default=0)
 
     # Sync tracking
-    last_synced_at: Optional[datetime] = Field(default=None)
+    last_synced_at: datetime | None = Field(default=None)
 
     # Typed JSONB - use DatasetExtraData schema
     extra_data: dict = Field(

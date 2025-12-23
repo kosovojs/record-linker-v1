@@ -14,8 +14,7 @@ or use sa_column_kwargs to avoid sharing Column objects.
 from __future__ import annotations
 
 import uuid as uuid_lib
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from sqlmodel import Field, SQLModel
 
@@ -27,7 +26,7 @@ __all__ = [
 
 def utc_now() -> datetime:
     """Get current UTC time."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class BaseTableModel(SQLModel):
@@ -50,7 +49,7 @@ class BaseTableModel(SQLModel):
 
     # Primary key - internal use only, never exposed
     # Using sa_column_kwargs instead of sa_column to avoid Column reuse
-    id: Optional[int] = Field(
+    id: int | None = Field(
         default=None,
         primary_key=True,
     )
@@ -67,7 +66,7 @@ class BaseTableModel(SQLModel):
     updated_at: datetime = Field(default_factory=utc_now)
 
     # Soft delete - null means active, set means deleted
-    deleted_at: Optional[datetime] = Field(default=None)
+    deleted_at: datetime | None = Field(default=None)
 
     @property
     def is_deleted(self) -> bool:

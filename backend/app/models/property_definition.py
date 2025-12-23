@@ -9,8 +9,6 @@ Design notes:
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import Column, Index, String, Text, UniqueConstraint
 from sqlmodel import Field
 
@@ -46,7 +44,7 @@ class PropertyDefinition(BaseTableModel, table=True):
         sa_column=Column(String(255), nullable=False),
         max_length=255,
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
     )
@@ -64,13 +62,13 @@ class PropertyDefinition(BaseTableModel, table=True):
     display_order: int = Field(default=0)
 
     # Wikidata integration
-    wikidata_property: Optional[str] = Field(
+    wikidata_property: str | None = Field(
         default=None,
         sa_column=Column(String(20), nullable=True),
     )
 
     # Optional validation
-    validation_regex: Optional[str] = Field(
+    validation_regex: str | None = Field(
         default=None,
         sa_column=Column(String(500), nullable=True),
     )

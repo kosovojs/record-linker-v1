@@ -10,7 +10,6 @@ Design notes:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import Column, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -50,7 +49,7 @@ class User(BaseTableModel, table=True):
         sa_column=Column(String(255), nullable=False),
         max_length=255,
     )
-    password_hash: Optional[str] = Field(
+    password_hash: str | None = Field(
         default=None,
         sa_column=Column(String(255), nullable=True),
     )
@@ -67,7 +66,7 @@ class User(BaseTableModel, table=True):
     )
 
     # Tracking
-    last_login_at: Optional[datetime] = Field(default=None)
+    last_login_at: datetime | None = Field(default=None)
 
     # JSONB settings - use UserSettings.model_dump() when setting
     settings: dict = Field(

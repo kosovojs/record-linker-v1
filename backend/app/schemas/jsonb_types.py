@@ -17,14 +17,14 @@ Usage in service layer:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
-
 
 # =============================================================================
 # User Settings
 # =============================================================================
+
 
 class NotificationPreferences(BaseModel):
     """User notification preferences."""
@@ -68,11 +68,11 @@ class UserSettings(BaseModel):
 class DatasetSourceInfo(BaseModel):
     """Information about the data source."""
 
-    api_version: Optional[str] = None
-    scraper_version: Optional[str] = None
-    license: Optional[str] = None
-    contact_email: Optional[str] = None
-    documentation_url: Optional[str] = None
+    api_version: str | None = None
+    scraper_version: str | None = None
+    license: str | None = None
+    contact_email: str | None = None
+    documentation_url: str | None = None
 
 
 class DatasetExtraData(BaseModel):
@@ -88,15 +88,15 @@ class DatasetExtraData(BaseModel):
     schema_version: int = 1
 
     # Import statistics
-    last_import_count: Optional[int] = None
-    last_import_duration_seconds: Optional[float] = None
+    last_import_count: int | None = None
+    last_import_duration_seconds: float | None = None
 
     # Field mappings from source to our properties
     # e.g., {"player_name": "full_name", "dob": "date_of_birth"}
     field_mappings: dict[str, str] = Field(default_factory=dict)
 
     # Notes about this dataset
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 # =============================================================================
@@ -111,8 +111,8 @@ class DatasetEntryExtraData(BaseModel):
     """
 
     # Import tracking
-    imported_at: Optional[datetime] = None
-    import_batch_id: Optional[str] = None
+    imported_at: datetime | None = None
+    import_batch_id: str | None = None
 
     # Source-specific IDs that don't fit in external_id
     alternate_ids: dict[str, str] = Field(default_factory=dict)
@@ -155,10 +155,10 @@ class ProjectConfig(BaseModel):
     """
 
     # Auto-accept candidates above this score (0-100, None = never auto-accept)
-    auto_accept_threshold: Optional[int] = Field(default=None, ge=0, le=100)
+    auto_accept_threshold: int | None = Field(default=None, ge=0, le=100)
 
     # Auto-reject candidates below this score
-    auto_reject_threshold: Optional[int] = Field(default=None, ge=0, le=100)
+    auto_reject_threshold: int | None = Field(default=None, ge=0, le=100)
 
     # Property weights for scoring
     matching_weights: MatchingWeights = Field(default_factory=MatchingWeights)
@@ -192,8 +192,8 @@ class TaskProcessingInfo(BaseModel):
 
     search_queries_used: list[str] = Field(default_factory=list)
     strategies_executed: list[str] = Field(default_factory=list)
-    processing_time_seconds: Optional[float] = None
-    worker_id: Optional[str] = None
+    processing_time_seconds: float | None = None
+    worker_id: str | None = None
 
 
 class TaskExtraData(BaseModel):
@@ -207,10 +207,10 @@ class TaskExtraData(BaseModel):
 
     # Retry tracking
     retry_count: int = 0
-    last_error: Optional[str] = None
+    last_error: str | None = None
 
     # Manual review notes from reviewer
-    review_notes: Optional[str] = None
+    review_notes: str | None = None
 
     # Tags for filtering
     tags: list[str] = Field(default_factory=list)
@@ -227,8 +227,8 @@ class PropertyMatch(BaseModel):
     """Details of how a single property matched."""
 
     property_id: str  # Wikidata property ID like P569
-    source_value: Optional[str] = None  # Value from dataset entry
-    wikidata_value: Optional[str] = None  # Value from Wikidata
+    source_value: str | None = None  # Value from dataset entry
+    wikidata_value: str | None = None  # Value from Wikidata
     match_score: int = Field(ge=0, le=100)  # How well they matched
     match_type: str = "exact"  # exact, fuzzy, partial, none
 
@@ -279,20 +279,20 @@ class CandidateExtraData(BaseModel):
     """
 
     # How candidate was found
-    search_query: Optional[str] = None
-    search_rank: Optional[int] = None  # Position in search results
+    search_query: str | None = None
+    search_rank: int | None = None  # Position in search results
 
     # Wikidata item info (cached for display, not authoritative)
-    wikidata_label: Optional[str] = None
-    wikidata_description: Optional[str] = None
+    wikidata_label: str | None = None
+    wikidata_description: str | None = None
 
     # Import info (for file-imported candidates)
-    import_batch_id: Optional[str] = None
-    import_row_number: Optional[int] = None
+    import_batch_id: str | None = None
+    import_row_number: int | None = None
 
     # AI suggestion info
-    ai_model: Optional[str] = None
-    ai_confidence: Optional[float] = None
+    ai_model: str | None = None
+    ai_confidence: float | None = None
 
     # Schema version
     schema_version: int = 1

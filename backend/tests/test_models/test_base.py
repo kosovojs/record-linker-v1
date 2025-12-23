@@ -1,12 +1,11 @@
 """Tests for BaseTableModel and model inheritance."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
-import pytest
+from sqlmodel import SQLModel
 
 from app.models.base import BaseTableModel, utc_now
-from sqlmodel import SQLModel
 
 
 class TestUtcNow:

@@ -1,6 +1,5 @@
 """Tests for enum definitions."""
 
-import pytest
 
 from app.schemas.enums import (
     CandidateSource,
