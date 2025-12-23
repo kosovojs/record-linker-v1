@@ -1,7 +1,7 @@
 # Record Linker - Agent Context
 
 > **Purpose**: This file preserves the context of the development conversation so work can be resumed in a fresh session.
-> **Last Updated**: 2023-12-23
+> **Last Updated**: 2025-12-23
 
 ## Project Overview
 
@@ -18,74 +18,46 @@
 | Backend | FastAPI + SQLModel + asyncpg |
 | Database | PostgreSQL (with JSONB) |
 | Async ORM | SQLModel (Pydantic + SQLAlchemy) |
+| Test DB | SQLite (with JSONB compatibility patches) |
 | Frontend | TBD (likely Vue.js or React) |
 
 ## Key Documentation
 
 - [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md) - Full project requirements and Q&A
 - [docs/MODEL_SCHEMA.md](docs/MODEL_SCHEMA.md) - Database schema design with field specifications
+- [docs/API_SPECIFICATION_v2.md](docs/API_SPECIFICATION_v2.md) - Complete API endpoint specifications
 
 ## Implementation Progress
 
 ### ✅ Completed Phases
 
-#### Phase 1: Project Setup
-- FastAPI application structure
-- Health check endpoints (`/health`, `/`)
-- Async database configuration
-- Test infrastructure with pytest-asyncio
+#### Phase 1-4: Foundation
+- FastAPI application structure + health endpoints
+- 9 ORM models with JSONB typed schemas
+- 9 entity request/response Pydantic schemas
+- Enums as VARCHAR with StrEnum validation
 
-#### Phase 2: Enums & Base Models
-- **Enums** (`app/schemas/enums.py`): UserRole, UserStatus, DatasetSourceType, ProjectStatus, TaskStatus, CandidateStatus, CandidateSource, PropertyDataType, PropertyValueSource
-- **Common Schemas** (`app/schemas/common.py`): PaginationParams, PaginatedResponse, ErrorResponse
-- **Base Model** (`app/models/base.py`): BaseTableModel with id, uuid, timestamps, soft delete
+#### Phase 5: API Endpoints (In Progress)
 
-#### Phase 3: ORM Models
-All 9 models implemented in `app/models/`:
+**✅ COMPLETED (36 tests passing):**
 
-| Model | File | Key Features |
-|-------|------|--------------|
-| User | `user.py` | UserRole/UserStatus enums, UserSettings JSONB |
-| Dataset | `dataset.py` | DatasetSourceType enum, DatasetExtraData JSONB |
-| PropertyDefinition | `property_definition.py` | EAV pattern attributes |
-| DatasetEntry | `dataset_entry.py` | External ID linking, raw_data storage |
-| DatasetEntryProperty | `dataset_entry_property.py` | EAV values with normalization |
-| Project | `project.py` | ProjectStatus enum, ProjectConfig JSONB |
-| Task | `task.py` | TaskStatus enum, TaskExtraData JSONB |
-| MatchCandidate | `match_candidate.py` | CandidateStatus/Source enums, score breakdowns |
-| AuditLog | `audit_log.py` | Permanent records (no soft delete) |
+| Router | Endpoints | Tests | Notes |
+|--------|-----------|-------|-------|
+| Datasets | 5 | 7 | CRUD with slug uniqueness |
+| Properties | 5 | 7 | CRUD with name uniqueness |
+| Projects | 5 | 7 | CRUD with dataset FK, N+1 fixed |
+| Entries | 5 | 6 | Bulk create, nested under datasets |
+| Tasks | 8 | 7 | Nested under projects + skip + alias |
+| **Total** | **28** | **34+2** | Base tests: 36 passing |
 
-### Typed JSONB Schemas (`app/schemas/jsonb_types.py`)
+**🔜 REMAINING:**
 
-All JSONB columns have corresponding Pydantic models for type safety:
-
-```
-UserSettings          -> users.settings
-DatasetExtraData      -> datasets.extra_data
-DatasetEntryExtraData -> dataset_entries.extra_data
-ProjectConfig         -> projects.config (matching weights, thresholds)
-TaskExtraData         -> tasks.extra_data (processing info)
-CandidateScoreBreakdown    -> match_candidates.score_breakdown
-CandidateMatchedProperties -> match_candidates.matched_properties
-CandidateExtraData         -> match_candidates.extra_data
-```
-
-Each model has `get_*()` and `set_*()` helper methods for typed access.
-
-#### Phase 4: Request/Response Schemas
-All 9 entities have Base/Create/Update/Read schemas in `app/schemas/`:
-
-| Entity | Schemas | Key Features |
-|--------|---------|--------------|
-| User | UserBase, UserCreate, UserUpdate, UserRead | EmailStr validation, role/status enums |
-| Dataset | DatasetBase, DatasetCreate, DatasetUpdate, DatasetRead | Slug pattern validation |
-| PropertyDefinition | PropertyDefinitionBase, PropertyDefinitionCreate, PropertyDefinitionUpdate, PropertyDefinitionRead | Wikidata property pattern (P###) |
-| DatasetEntry | DatasetEntryBase, DatasetEntryCreate, DatasetEntryUpdate, DatasetEntryRead | UUID-based parent references |
-| DatasetEntryProperty | DatasetEntryPropertyBase, DatasetEntryPropertyCreate, DatasetEntryPropertyUpdate, DatasetEntryPropertyRead | Confidence 0-100 validation |
-| Project | ProjectBase, ProjectCreate, ProjectUpdate, ProjectRead | ProjectConfig typed JSONB |
-| Task | TaskBase, TaskCreate, TaskUpdate, TaskRead | Wikidata QID pattern (Q###) |
-| MatchCandidate | MatchCandidateBase, MatchCandidateCreate, MatchCandidateUpdate, MatchCandidateRead | Score 0-100 validation |
-| AuditLog | AuditLogCreate, AuditLogRead | No Update (immutable logs) |
+| Router | Endpoints | Notes |
+|--------|-----------|-------|
+| Candidates | 9 | CRUD + accept/reject/bulk |
+| Project Workflow | 4 | start, rerun, stats, export |
+| Audit Logs | 2 | Read-only |
+| Wikidata | 1 | Search stub |
 
 ### 📋 Remaining Phases
 
@@ -103,7 +75,54 @@ All 9 entities have Base/Create/Update/Read schemas in `app/schemas/`:
 - Alembic setup
 - Initial migration generation
 
+### Services Layer
+
+All services in `app/services/` with common patterns:
+
+| Service | Status | Key Features |
+|---------|--------|--------------|
+| `base.py` | ✅ | Generic CRUD, get_by_uuid, soft_delete |
+| `exceptions.py` | ✅ | ConflictError, NotFoundError, ValidationError |
+| `dataset_service.py` | ✅ | Slug validation, filtered list |
+| `property_service.py` | ✅ | Name validation |
+| `project_service.py` | ✅ | N+1 fixed with JOINs |
+| `entry_service.py` | ✅ | Bulk create, external_id validation |
+| `task_service.py` | ✅ | Batch UUID fetch, skip helper |
+| `candidate_service.py` | 🔜 | Accept/reject/bulk actions |
+| `audit_service.py` | 🔜 | log_action, log_bulk_action |
+
+### API Utilities
+
+`app/api/utils.py`:
+- `get_or_404(service, uuid, entity_name)` - Standardized 404 handling
+- `raise_not_found(entity_name)` - Helper for custom 404s
+- `handle_conflict_error(error)` - ConflictError → HTTPException
+
 ## Key Design Decisions
+
+### 1. N+1 Prevention
+List endpoints use JOINs or batch fetching:
+- `ProjectService.get_list_with_datasets()` - Single query with JOIN
+- `TaskService.get_entry_uuids_for_tasks()` - Batch IN query
+- Nested routes use path parameter UUIDs directly
+
+### 2. Domain Exceptions in Services
+Services raise domain exceptions (`ConflictError`, `NotFoundError`), routers catch and convert to HTTP responses. Clean separation of concerns.
+
+### 3. Validation in Services
+`create_with_validation()` and `update_with_validation()` methods encapsulate uniqueness checks, keeping routers thin.
+
+### 4. SQLite Test Compatibility
+- `conftest.py` patches `SQLiteTypeCompiler.visit_JSONB` to render as JSON
+- Schema validators handle JSON strings from SQLite
+- All models explicitly imported before `create_all`
+
+### 5. Nested URL Structure
+- `/datasets/{uuid}/entries[/{uuid}]`
+- `/projects/{uuid}/tasks[/{uuid}]`
+- `/tasks/{uuid}` as shortcut alias (per Q15)
+
+## Key Design Decisions (old)
 
 ### 1. No SQLModel Relationship()
 SQLModel's `Relationship()` has issues with forward references when using `from __future__ import annotations`. Relationships are accessed via explicit queries in the service layer instead - this actually prevents N+1 issues by forcing explicit eager loading.
@@ -120,63 +139,55 @@ All models (except AuditLog) inherit `deleted_at` for soft deletion. Use `model.
 ### 5. UUID for Public IDs
 Internal `id` (BIGINT) is never exposed. Public API uses `uuid` field. Foreign keys use internal IDs for performance.
 
-## Test Coverage
+## Test Infrastructure
 
-**144 tests passing** covering:
-- Health endpoints
-- Enum values and serialization
-- Common schemas (pagination, errors)
-- JSONB typed schemas
-- Model imports and inheritance
-- Base model features (soft delete, UUID, defaults)
+```
+tests/test_api/
+├── test_datasets.py    # 7 tests
+├── test_entries.py     # 6 tests
+├── test_health.py      # 2 tests
+├── test_projects.py    # 7 tests
+├── test_properties.py  # 7 tests
+└── test_tasks.py       # 7 tests
+```
 
-Run tests: `cd backend && .venv\Scripts\pytest -v`
+Run: `cd backend && .venv\Scripts\pytest tests/ -v`
 
-## File Structure
+## File Structure (Updated)
 
 ```
 backend/
 ├── app/
-│   ├── __init__.py
-│   ├── config.py           # Settings via pydantic-settings
-│   ├── database.py         # Async engine setup
-│   ├── main.py             # FastAPI app entry point
 │   ├── api/
-│   │   ├── deps.py         # FastAPI dependencies
-│   │   └── v1/             # API version 1 routes (TBD)
-│   ├── models/
-│   │   ├── __init__.py     # Lazy imports to avoid circular refs
-│   │   ├── base.py         # BaseTableModel
-│   │   ├── user.py
-│   │   ├── dataset.py
-│   │   ├── property_definition.py
-│   │   ├── dataset_entry.py
-│   │   ├── dataset_entry_property.py
-│   │   ├── project.py
-│   │   ├── task.py
-│   │   ├── match_candidate.py
-│   │   └── audit_log.py
-│   ├── schemas/
-│   │   ├── __init__.py     # Re-exports all schemas
-│   │   ├── common.py       # Pagination, errors
-│   │   ├── enums.py        # All StrEnum definitions
-│   │   └── jsonb_types.py  # Typed JSONB schemas
-│   ├── services/           # Business logic (TBD)
-│   └── utils/
-├── tests/
-│   ├── conftest.py         # Pytest fixtures
-│   ├── test_api/
-│   ├── test_models/
-│   └── test_schemas/
-├── pyproject.toml
-└── README.md
+│   │   ├── deps.py         # DbSession, Pagination dependencies
+│   │   ├── utils.py        # get_or_404, error handlers
+│   │   └── v1/
+│   │       ├── __init__.py # Router aggregation
+│   │       ├── datasets.py
+│   │       ├── entries.py
+│   │       ├── projects.py
+│   │       ├── properties.py
+│   │       └── tasks.py
+│   ├── models/             # 9 ORM models
+│   ├── schemas/            # 9 entity + common schemas
+│   └── services/
+│       ├── __init__.py
+│       ├── base.py         # BaseService generic CRUD
+│       ├── exceptions.py   # Domain exceptions
+│       ├── dataset_service.py
+│       ├── entry_service.py
+│       ├── project_service.py
+│       ├── property_service.py
+│       └── task_service.py
+└── tests/
 ```
 
 ## Next Steps (for new session)
 
-1. **Run tests** to verify state: `cd backend && .venv\Scripts\pytest -v`
-2. **Continue with Phase 4**: Create request/response Pydantic schemas
-3. **Reference**: Check `docs/MODEL_SCHEMA.md` for field specifications
+1. **Verify all tests pass**: `cd backend && .venv\Scripts\pytest -v`
+2. **Continue with Candidates**: Create `candidate_service.py` and `candidates.py` router
+3. **Reference**: [docs/API_SPECIFICATION_v2.md](docs/API_SPECIFICATION_v2.md) for endpoint specs
+4. **Pattern to follow**: Copy structure from `tasks.py` router
 
 ## Common Commands
 
@@ -185,12 +196,15 @@ backend/
 cd backend
 .venv\Scripts\activate
 
-# Run tests
+# Run all tests
 .venv\Scripts\pytest -v
 
-# Run single test file
-.venv\Scripts\pytest tests/test_models/test_base.py -v
+# Run specific test file
+.venv\Scripts\pytest tests/test_api/test_tasks.py -v
 
-# Start dev server (once API is ready)
+# Start dev server
 .venv\Scripts\uvicorn app.main:app --reload
+
+# Check import
+.venv\Scripts\python -c "from app.main import app; print('OK')"
 ```
