@@ -14,12 +14,12 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import DbSession, Pagination
 from app.schemas.common import PaginatedResponse
 from app.schemas.dataset import DatasetCreate, DatasetRead, DatasetUpdate
 from app.services.dataset_service import DatasetService
+from app.services.exceptions import ConflictError
 
 router = APIRouter()
 
@@ -57,16 +57,10 @@ async def create_dataset(
 ):
     """Create a new dataset."""
     service = DatasetService(db)
-
-    # Check for slug uniqueness
-    existing = await service.get_by_slug(data.slug)
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Dataset with slug '{data.slug}' already exists",
-        )
-
-    dataset = await service.create(data)
+    try:
+        dataset = await service.create_with_validation(data)
+    except ConflictError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.message)
     return DatasetRead.model_validate(dataset)
 
 
@@ -104,16 +98,10 @@ async def update_dataset(
             detail="Dataset not found",
         )
 
-    # Check slug uniqueness if being updated
-    if data.slug and data.slug != dataset.slug:
-        existing = await service.get_by_slug(data.slug)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Dataset with slug '{data.slug}' already exists",
-            )
-
-    updated = await service.update(dataset, data)
+    try:
+        updated = await service.update_with_validation(dataset, data)
+    except ConflictError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.message)
     return DatasetRead.model_validate(updated)
 
 

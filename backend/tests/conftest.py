@@ -60,6 +60,18 @@ async def test_engine(test_settings: Settings):
         future=True,
     )
 
+    # Import all models explicitly to ensure they're registered with SQLModel.metadata
+    # This is necessary for proper FK ordering during table creation
+    from app.models.user import User  # noqa: F401
+    from app.models.dataset import Dataset  # noqa: F401
+    from app.models.property_definition import PropertyDefinition  # noqa: F401
+    from app.models.dataset_entry import DatasetEntry  # noqa: F401
+    from app.models.dataset_entry_property import DatasetEntryProperty  # noqa: F401
+    from app.models.project import Project  # noqa: F401
+    from app.models.task import Task  # noqa: F401
+    from app.models.match_candidate import MatchCandidate  # noqa: F401
+    from app.models.audit_log import AuditLog  # noqa: F401
+
     # Create all tables
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
