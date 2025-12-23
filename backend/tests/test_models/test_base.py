@@ -135,6 +135,7 @@ class TestModelDefaults:
     def test_user_defaults(self):
         """Test User model has correct defaults."""
         from app.models.user import User
+        from app.schemas.jsonb_types import UserSettings
 
         user = User(
             email="test@example.com",
@@ -143,11 +144,17 @@ class TestModelDefaults:
         assert user.role == "user"
         assert user.status == "active"
         assert user.password_hash is None
-        assert user.settings == {}
+        # Settings now uses typed schema defaults
+        assert "notifications" in user.settings
+        assert "ui" in user.settings
+        # Verify it parses back to typed model
+        typed_settings = user.get_settings()
+        assert isinstance(typed_settings, UserSettings)
 
     def test_project_defaults(self):
         """Test Project model has correct defaults."""
         from app.models.project import Project
+        from app.schemas.jsonb_types import ProjectConfig
 
         project = Project(
             dataset_id=1,
@@ -157,7 +164,11 @@ class TestModelDefaults:
         assert project.status == "draft"
         assert project.task_count == 0
         assert project.tasks_completed == 0
-        assert project.config == {}
+        # Config now uses typed schema defaults
+        assert "matching_weights" in project.config
+        # Verify it parses back to typed model
+        typed_config = project.get_config()
+        assert isinstance(typed_config, ProjectConfig)
 
     def test_task_defaults(self):
         """Test Task model has correct defaults."""
