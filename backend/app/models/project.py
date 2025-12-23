@@ -39,8 +39,9 @@ class Project(BaseTableModel, table=True):
     dataset_id: int = Field(
         sa_column=Column(BigInteger, ForeignKey("datasets.id"), nullable=False),
     )
-    owner_id: int = Field(
-        sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=False),
+    owner_id: int | None = Field(
+        default=None,
+        sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=True),
     )
 
     # Identification
