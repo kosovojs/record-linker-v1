@@ -13,15 +13,25 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query, status
 
 from app.api.deps import DbSession, Pagination
+from app.api.utils import get_or_404, raise_not_found
 from app.schemas.common import PaginatedResponse
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 from app.services.project_service import ProjectService
 from app.services.dataset_service import DatasetService
 
 router = APIRouter()
+
+
+async def _enrich_project_read(service: ProjectService, project) -> ProjectRead:
+    """Enrich ProjectRead with dataset_uuid."""
+    dataset = await service.get_dataset_for_project(project)
+    project_read = ProjectRead.model_validate(project)
+    if dataset:
+        project_read.dataset_uuid = dataset.uuid
+    return project_read
 
 
 @router.get("", response_model=PaginatedResponse[ProjectRead])
@@ -43,14 +53,7 @@ async def list_projects(
         dataset_uuid=dataset_uuid,
     )
 
-    # Populate dataset_uuid for each project
-    project_reads = []
-    for project in items:
-        dataset = await service.get_dataset_for_project(project)
-        project_read = ProjectRead.model_validate(project)
-        if dataset:
-            project_read.dataset_uuid = dataset.uuid
-        project_reads.append(project_read)
+    project_reads = [await _enrich_project_read(service, p) for p in items]
 
     return PaginatedResponse[ProjectRead](
         items=project_reads,
@@ -67,14 +70,10 @@ async def create_project(
     data: ProjectCreate,
 ):
     """Create a new project."""
-    # Validate dataset exists
     dataset_service = DatasetService(db)
     dataset = await dataset_service.get_by_uuid(data.dataset_uuid)
     if not dataset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Dataset with UUID '{data.dataset_uuid}' not found",
-        )
+        raise_not_found(f"Dataset with UUID '{data.dataset_uuid}'")
 
     project_service = ProjectService(db)
     project = await project_service.create_with_dataset(data, dataset)
@@ -91,21 +90,8 @@ async def get_project(
 ):
     """Get a single project by UUID with stats."""
     service = ProjectService(db)
-    project = await service.get_by_uuid(uuid)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
-        )
-
-    # Get dataset for UUID
-    dataset = await service.get_dataset_for_project(project)
-    project_read = ProjectRead.model_validate(project)
-    if dataset:
-        project_read.dataset_uuid = dataset.uuid
-
-    return project_read
+    project = await get_or_404(service, uuid, "Project")
+    return await _enrich_project_read(service, project)
 
 
 @router.patch("/{uuid}", response_model=ProjectRead)
@@ -116,22 +102,9 @@ async def update_project(
 ):
     """Update a project."""
     service = ProjectService(db)
-    project = await service.get_by_uuid(uuid)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
-        )
-
+    project = await get_or_404(service, uuid, "Project")
     updated = await service.update(project, data)
-
-    dataset = await service.get_dataset_for_project(updated)
-    project_read = ProjectRead.model_validate(updated)
-    if dataset:
-        project_read.dataset_uuid = dataset.uuid
-
-    return project_read
+    return await _enrich_project_read(service, updated)
 
 
 @router.delete("/{uuid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -141,13 +114,6 @@ async def delete_project(
 ):
     """Soft delete a project."""
     service = ProjectService(db)
-    project = await service.get_by_uuid(uuid)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
-        )
-
+    project = await get_or_404(service, uuid, "Project")
     await service.soft_delete(project)
     return None

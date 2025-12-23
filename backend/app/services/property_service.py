@@ -16,6 +16,7 @@ from app.schemas.property_definition import (
     PropertyDefinitionUpdate,
 )
 from app.services.base import BaseService
+from app.services.exceptions import ConflictError
 
 
 class PropertyDefinitionService(
@@ -49,12 +50,30 @@ class PropertyDefinitionService(
 
         items, total = await self.get_list(pagination, filters)
 
-        # Apply wikidata_only filter (can't use simple equality)
+        # Apply wikidata_only filter
         if wikidata_only:
             items = [item for item in items if item.wikidata_property is not None]
-            # Note: This affects accuracy of total count, but acceptable for now
 
         return items, total
+
+    async def create_with_validation(
+        self, data: PropertyDefinitionCreate
+    ) -> PropertyDefinition:
+        """Create property definition with name uniqueness validation."""
+        existing = await self.get_by_name(data.name)
+        if existing:
+            raise ConflictError("Property", "name", data.name)
+        return await self.create(data)
+
+    async def update_with_validation(
+        self, db_obj: PropertyDefinition, data: PropertyDefinitionUpdate
+    ) -> PropertyDefinition:
+        """Update property definition with name uniqueness validation."""
+        if data.name and data.name != db_obj.name:
+            existing = await self.get_by_name(data.name)
+            if existing:
+                raise ConflictError("Property", "name", data.name)
+        return await self.update(db_obj, data)
 
 
 def get_property_service(db: AsyncSession) -> PropertyDefinitionService:

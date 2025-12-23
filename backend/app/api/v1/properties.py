@@ -13,9 +13,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query, status
 
 from app.api.deps import DbSession, Pagination
+from app.api.utils import get_or_404, handle_conflict_error
 from app.schemas.common import PaginatedResponse
 from app.schemas.property_definition import (
     PropertyDefinitionCreate,
@@ -23,6 +24,7 @@ from app.schemas.property_definition import (
     PropertyDefinitionUpdate,
 )
 from app.services.property_service import PropertyDefinitionService
+from app.services.exceptions import ConflictError
 
 router = APIRouter()
 
@@ -62,16 +64,10 @@ async def create_property(
 ):
     """Create a new property definition."""
     service = PropertyDefinitionService(db)
-
-    # Check for name uniqueness
-    existing = await service.get_by_name(data.name)
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Property with name '{data.name}' already exists",
-        )
-
-    prop = await service.create(data)
+    try:
+        prop = await service.create_with_validation(data)
+    except ConflictError as e:
+        handle_conflict_error(e)
     return PropertyDefinitionRead.model_validate(prop)
 
 
@@ -82,14 +78,7 @@ async def get_property(
 ):
     """Get a single property definition by UUID."""
     service = PropertyDefinitionService(db)
-    prop = await service.get_by_uuid(uuid)
-
-    if not prop:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Property definition not found",
-        )
-
+    prop = await get_or_404(service, uuid, "Property definition")
     return PropertyDefinitionRead.model_validate(prop)
 
 
@@ -101,24 +90,12 @@ async def update_property(
 ):
     """Update a property definition."""
     service = PropertyDefinitionService(db)
-    prop = await service.get_by_uuid(uuid)
+    prop = await get_or_404(service, uuid, "Property definition")
 
-    if not prop:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Property definition not found",
-        )
-
-    # Check name uniqueness if being updated
-    if data.name and data.name != prop.name:
-        existing = await service.get_by_name(data.name)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Property with name '{data.name}' already exists",
-            )
-
-    updated = await service.update(prop, data)
+    try:
+        updated = await service.update_with_validation(prop, data)
+    except ConflictError as e:
+        handle_conflict_error(e)
     return PropertyDefinitionRead.model_validate(updated)
 
 
@@ -129,13 +106,6 @@ async def delete_property(
 ):
     """Soft delete a property definition."""
     service = PropertyDefinitionService(db)
-    prop = await service.get_by_uuid(uuid)
-
-    if not prop:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Property definition not found",
-        )
-
+    prop = await get_or_404(service, uuid, "Property definition")
     await service.soft_delete(prop)
     return None

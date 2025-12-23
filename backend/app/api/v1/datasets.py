@@ -13,9 +13,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query, status
 
 from app.api.deps import DbSession, Pagination
+from app.api.utils import get_or_404, handle_conflict_error
 from app.schemas.common import PaginatedResponse
 from app.schemas.dataset import DatasetCreate, DatasetRead, DatasetUpdate
 from app.services.dataset_service import DatasetService
@@ -60,7 +61,7 @@ async def create_dataset(
     try:
         dataset = await service.create_with_validation(data)
     except ConflictError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.message)
+        handle_conflict_error(e)
     return DatasetRead.model_validate(dataset)
 
 
@@ -71,14 +72,7 @@ async def get_dataset(
 ):
     """Get a single dataset by UUID."""
     service = DatasetService(db)
-    dataset = await service.get_by_uuid(uuid)
-
-    if not dataset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dataset not found",
-        )
-
+    dataset = await get_or_404(service, uuid, "Dataset")
     return DatasetRead.model_validate(dataset)
 
 
@@ -90,18 +84,12 @@ async def update_dataset(
 ):
     """Update a dataset."""
     service = DatasetService(db)
-    dataset = await service.get_by_uuid(uuid)
-
-    if not dataset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dataset not found",
-        )
+    dataset = await get_or_404(service, uuid, "Dataset")
 
     try:
         updated = await service.update_with_validation(dataset, data)
     except ConflictError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.message)
+        handle_conflict_error(e)
     return DatasetRead.model_validate(updated)
 
 
@@ -112,13 +100,6 @@ async def delete_dataset(
 ):
     """Soft delete a dataset."""
     service = DatasetService(db)
-    dataset = await service.get_by_uuid(uuid)
-
-    if not dataset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dataset not found",
-        )
-
+    dataset = await get_or_404(service, uuid, "Dataset")
     await service.soft_delete(dataset)
     return None
