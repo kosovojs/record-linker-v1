@@ -122,11 +122,7 @@ class ErrorResponse(BaseModel):
 
     detail: str | list[ErrorDetail] = Field(description="Error details")
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {"detail": "Resource not found"}
-        }
-    )
+    model_config = ConfigDict(json_schema_extra={"example": {"detail": "Resource not found"}})
 
 
 class HealthResponse(BaseModel):

@@ -1,6 +1,5 @@
 """Tests for enum definitions."""
 
-
 from app.schemas.enums import (
     CandidateSource,
     CandidateStatus,

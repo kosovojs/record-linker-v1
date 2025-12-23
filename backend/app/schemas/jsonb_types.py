@@ -65,6 +65,7 @@ class UserSettings(BaseModel):
 # Dataset Extra Data
 # =============================================================================
 
+
 class DatasetSourceInfo(BaseModel):
     """Information about the data source."""
 
@@ -103,6 +104,7 @@ class DatasetExtraData(BaseModel):
 # DatasetEntry Extra Data
 # =============================================================================
 
+
 class DatasetEntryExtraData(BaseModel):
     """
     Structure for dataset_entries.extra_data JSONB column.
@@ -128,6 +130,7 @@ class DatasetEntryExtraData(BaseModel):
 # =============================================================================
 # Project Config
 # =============================================================================
+
 
 class MatchingWeights(BaseModel):
     """Weights for different properties in matching score calculation."""
@@ -187,6 +190,7 @@ class ProjectConfig(BaseModel):
 # Task Extra Data
 # =============================================================================
 
+
 class TaskProcessingInfo(BaseModel):
     """Information about task processing."""
 
@@ -222,6 +226,7 @@ class TaskExtraData(BaseModel):
 # =============================================================================
 # MatchCandidate Extra Data & Score Breakdown
 # =============================================================================
+
 
 class PropertyMatch(BaseModel):
     """Details of how a single property matched."""

@@ -37,8 +37,7 @@ class DatasetEntryProperty(BaseTableModel, table=True):
     __tablename__ = "dataset_entry_properties"
     __table_args__ = (
         UniqueConstraint(
-            "dataset_entry_id", "property_id", "ordinal",
-            name="uq_dep_entry_property_ordinal"
+            "dataset_entry_id", "property_id", "ordinal", name="uq_dep_entry_property_ordinal"
         ),
         Index("idx_dep_entry", "dataset_entry_id"),
         Index("idx_dep_property", "property_id"),

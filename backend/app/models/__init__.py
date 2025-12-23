@@ -43,33 +43,43 @@ def __getattr__(name: str):
     """
     if name == "BaseTableModel":
         from app.models.base import BaseTableModel
+
         return BaseTableModel
     elif name == "User":
         from app.models.user import User
+
         return User
     elif name == "Dataset":
         from app.models.dataset import Dataset
+
         return Dataset
     elif name == "PropertyDefinition":
         from app.models.property_definition import PropertyDefinition
+
         return PropertyDefinition
     elif name == "DatasetEntry":
         from app.models.dataset_entry import DatasetEntry
+
         return DatasetEntry
     elif name == "DatasetEntryProperty":
         from app.models.dataset_entry_property import DatasetEntryProperty
+
         return DatasetEntryProperty
     elif name == "Project":
         from app.models.project import Project
+
         return Project
     elif name == "Task":
         from app.models.task import Task
+
         return Task
     elif name == "MatchCandidate":
         from app.models.match_candidate import MatchCandidate
+
         return MatchCandidate
     elif name == "AuditLog":
         from app.models.audit_log import AuditLog
+
         return AuditLog
 
     raise AttributeError(f"module 'app.models' has no attribute '{name}'")

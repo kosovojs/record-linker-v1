@@ -159,7 +159,10 @@ class TestTaskExtraData:
     def test_processing_info(self):
         """Test processing info can be set."""
         extra = TaskExtraData(
-            processing={"search_queries_used": ["John Smith hockey"], "processing_time_seconds": 1.5}
+            processing={
+                "search_queries_used": ["John Smith hockey"],
+                "processing_time_seconds": 1.5,
+            }
         )
         assert extra.processing.search_queries_used[0] == "John Smith hockey"
         assert extra.processing.processing_time_seconds == 1.5

@@ -1,6 +1,5 @@
 """Tests for common schemas."""
 
-
 from app.schemas.common import (
     ErrorResponse,
     PaginatedResponse,
@@ -67,23 +66,17 @@ class TestPaginatedResponse:
     def test_has_next_prev(self):
         """Test has_next and has_prev properties."""
         # First page of multi-page result
-        response = PaginatedResponse[str](
-            items=["a"], total=50, page=1, page_size=20
-        )
+        response = PaginatedResponse[str](items=["a"], total=50, page=1, page_size=20)
         assert response.has_next is True
         assert response.has_prev is False
 
         # Middle page
-        response2 = PaginatedResponse[str](
-            items=["a"], total=50, page=2, page_size=20
-        )
+        response2 = PaginatedResponse[str](items=["a"], total=50, page=2, page_size=20)
         assert response2.has_next is True
         assert response2.has_prev is True
 
         # Last page
-        response3 = PaginatedResponse[str](
-            items=["a"], total=50, page=3, page_size=20
-        )
+        response3 = PaginatedResponse[str](items=["a"], total=50, page=3, page_size=20)
         assert response3.has_next is False
         assert response3.has_prev is True
 
