@@ -708,7 +708,32 @@ When bulk creating/updating and some items fail:
 - C) Configurable via request parameter
 
 **Your Answer:**
-suggest with argumentation and real-world experience which is the best. dont have stroing feelings between A and B
+**Recommendation: A (All-or-nothing)**
+
+**Argumentation:**
+
+1. **Data Integrity**: All-or-nothing transactions ensure the database stays in a consistent state. With partial success, you can end up with "orphaned" data that's hard to clean up.
+
+2. **Error Recovery is Clearer**: When a bulk operation fails with all-or-nothing, the user knows exactly what happened: nothing was created. They can fix the problematic items and retry the entire batch. With partial success, users must figure out which items succeeded, which failed, and handle them differently.
+
+3. **Idempotency**: All-or-nothing makes retry logic simpler. If the request times out, the client can safely retry. With partial success, retrying could create duplicates.
+
+4. **Our Typical Batch Sizes**: For this app, bulk operations will likely be:
+   - Entry creation: 10-100 items typically
+   - Task creation: 10-500 items
+   - Candidate updates: 5-20 items
+
+   These are small enough that re-submitting after fixing errors isn't painful.
+
+5. **Real-World Experience**: APIs like Stripe, GitHub, and most database ORMs use all-or-nothing by default. Partial success is more common in eventual-consistency systems (like email batches) where retries aren't practical.
+
+**When Partial Success Makes Sense** (not our case):
+- Very large batches (10K+ items) where retrying is expensive
+- Idempotent operations (e.g., "set status to X")
+- Async/background jobs where failures are logged separately
+
+**Implementation Note**: We can always add partial success later as an opt-in flag if real-world usage shows the need.
+
 ---
 
 ### Q11: Status Transition Validation
