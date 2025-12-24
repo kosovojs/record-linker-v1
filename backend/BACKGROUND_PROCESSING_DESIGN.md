@@ -1,159 +1,206 @@
-# Background Processing Architecture
+# Background Processing Architecture (Detailed)
 
-## 1. Overview
+> **Status**: Draft
+> **Phase**: 6+ Implementation Guide
+> **Scope**: Asynchronous Task Processing & Data Pipelines
 
-This document outlines the architecture for the background processing system of the Record Linker. The goal is to decouple time-consuming operations (like external API calls and large data processing) from the user-facing HTTP API to ensure responsiveness and scalability.
+## 1. Executive Summary
 
-The system follows a classic **Producer-Consumer** pattern using a persistent **Message Broker**.
+This document defines the architectural standard for background processing in the Record Linker system. It mandates a **Message-Driven Architecture** to ensure:
+- **Resilience**: Failures in external systems (Wikidata) do not crash the application.
+- **Scalability**: High-volume matching (10k+ records) is distributed across multiple workers.
+- **Responsiveness**: User requests are accepted immediately (`202 Accepted`), while processing happens asynchronously.
 
-### High-Level Architecture
+---
+
+## 2. Architecture Overview
+
+The system implements a **Producer-Consumer** model with strict separation of concerns.
 
 ```mermaid
-graph LR
-    User[User/Client] -->|HTTP Request| API[API Server]
-    API -->|Enqueues Job| Broker[(Message Broker)]
-    API -.->|Reads Status| DB[(Database)]
-
-    subgraph 'Background Workers'
-        Worker[Worker Process] -->|Polls| Broker
-        Worker -->|External Calls| Wikidata[Wikidata API]
-        Worker -->|Updates State| DB
+graph TD
+    subgraph "API Layer (Producer)"
+        API[FastAPI Server]
+        Transaction[DB Transaction]
     end
+
+    subgraph "Message Infrastructure"
+        Broker[(Message Broker)]
+        DLQ[Dead Letter Queue]
+    end
+
+    subgraph "Worker Layer (Consumer)"
+        Worker[Worker Process]
+        Limiter[Rate Limiter]
+    end
+
+    subgraph "External & Persistence"
+        DB[(PostgreSQL)]
+        Wikidata[Wikidata API]
+    end
+
+    API -->|1. Create Task & Job| Transaction
+    Transaction -->|2. Commit| DB
+    Transaction -.->|3. Enqueue Job| Broker
+
+    Broker -->|4. Push/Poll| Worker
+    Worker -->|5. Acquire Lock| Limiter
+    Worker -->|6. Fetch Data| DB
+    Worker -->|7. External Call| Wikidata
+    Worker -->|8. Save Results| DB
+
+    Worker -.->|Error| Broker
+    Broker -.->|Max Retries| DLQ
+```
+
+### 2.1 Component Responsibilities
+
+| Component | Responsibility | Failure Mode |
+|-----------|----------------|--------------|
+| **Producer (API)** | Validates input, creates DB record (pending state), and enqueues job. | Returns user error (4xx) or server error (5xx) if enqueue fails. |
+| **Broker** | Durably stores messages. Handles routing and priorities. | Persists messages to disk. Clusters for HA. |
+| **Consumer (Worker)** | Executes logic. Manages local state (ACK/NACK). | Restarts automatically. Messages remain in queue (timeout). |
+| **Dead Letter Queue (DLQ)** | "Graveyard" for unprocessable messages to prevent infinite loops. | Requires manual operator intervention / replay. |
+
+---
+
+## 3. The Job Protocol
+
+Jobs are **self-contained units of work**. A worker should theoretically be able to execute a job with no shared memory from the producer.
+
+### 3.1 Job Envelope Schema
+
+Every message payload must adhere to this strict structure:
+
+```json
+{
+  "header": {
+    "job_id": "uuid4-correlation-id",
+    "type": "entity.match",
+    "version": "1.0",
+    "created_at": "2024-12-24T12:00:00Z",
+    "attempt": 1,
+    "max_attempts": 3
+  },
+  "body": {
+    "project_id": 50,
+    "task_id": 1024,
+    "dataset_entry_id": 500
+  },
+  "tracing": {
+    "trace_id": "0af7651916cd43dd8448eb211c80319c",
+    "span_id": "b7ad6b7169203331"
+  }
+}
+```
+
+### 3.2 Design Rules
+1.  **Small Payloads**: Do not send the *data* (e.g., the 50MB CSV file content) in the message. Send references (`file_path`, `entry_id`).
+2.  **Idempotency Keys**: Use `task_id` as a natural idempotency key. Processing `task_id=1024` twice should verify the status before re-running.
+
+---
+
+## 4. Workflows & Data Consistency
+
+### 4.1 The "Happy Path": Task Matching
+
+1.  **User Action**: User requests "Match Project 123".
+2.  **Producer (Transaction)**:
+    -   `UPDATE tasks SET status='QUEUED' WHERE project_id=123`
+    -   *Fan-out*: Iterate tasks, create a job for each.
+    -   *Optimization*: Use **Batch Enqueue** to send 1,000 jobs in one network call to the broker.
+3.  **Consistency Check**:
+    -   *Ideal*: **Transactional Outbox**. Write jobs to a `outbox` DB table in the same transaction as the Task update. A separate relay process moves them to the Broker.
+    -   *Pragmatic*: Write to DB first. If successful, write to Broker. If Broker fails, the background "Stuck Task Sweeper" (Section 6) will eventually retry.
+
+### 4.2 Handling Concurrency (Race Conditions)
+
+*Scenario*: User deletes a Project while 50 workers are processing its tasks.
+
+**Worker Logic**:
+```python
+def process_match(task_id):
+    # 1. READ with lock checks
+    task = db.query(Task).get(task_id)
+
+    # 2. Guard Clauses
+    if not task:
+        return ACK  # Task deleted, job is obsolete.
+    if task.status == 'CANCELLED':
+        return ACK  # User cancelled.
+
+    # ... perform expensive work ...
+
+    # 3. Optimistic Locking on Write
+    # Ensure status hasn't changed since we started
+    rows_updated = db.query(Task)\
+        .filter(Task.id == task_id, Task.status == 'QUEUED')\
+        .update({"status": "COMPLETED", ...})
+
+    if rows_updated == 0:
+        # State changed mid-processing (e.g. Cancelled)
+        # Log warning, but strictly ACK to remove job.
+        return ACK
 ```
 
 ---
 
-## 2. Core Components
+## 5. Resilience Strategy
 
-### 2.1 The Message Broker (Queue)
-Acts as the intermediary buffer. It stores "Job Messages" until a worker is ready to process them.
-- **Responsibility**: Durably store messages. Ensure reliable delivery.
-- **Queues**:
-    - `high_priority`: For user-initiated single-item actions (e.g., "Retry this task now").
-    - `default`: For bulk operations (e.g., "Process entire dataset").
-    - `low_priority`: For background maintenance or non-urgent analytics.
+### 5.1 Error Lifecycle
 
-### 2.2 The Job (Task)
-A serializable unit of work. It contains everything needed to execute the action.
-- **Structure**:
-    ```json
-    {
-      "job_id": "uuid-1234",
-      "type": "find_matches",
-      "payload": {
-        "task_id": 105,
-        "entry_data": { "name": "Douglas Adams", "dob": "1952-03-11" }
-      },
-      "metadata": {
-        "user_id": 42,
-        "retries": 0
-      }
-    }
-    ```
-- **Idempotency**: Jobs must be designed to be safely re-runnable. If a worker crashes mid-process, the job will be re-delivered. The implementation must handle this (e.g., checking if a result already exists before writing).
-
-### 2.3 The Worker
-A standalone process that executes jobs.
-- **Lifecycle**:
-    1.  Connect to Broker.
-    2.  Wait/Poll for message.
-    3.  **Reserve** message (prevent others from taking it).
-    4.  Execute logic (e.g., call Wikidata).
-    5.  **Ack** (Acknowledge) message upon success -> Broker deletes it.
-    6.  **Nack** (Negative Ack) upon failure -> Broker re-queues it for retry.
-
-### 2.4 State Store (Database)
-The source of truth for the UI. Workers update the database manifest process.
-- The API *never* waits for the Worker.
-- The Worker *updates* the API's view of the world (e.g., changing Task Status from `PENDING` to `COMPLETED`).
-
----
-
-## 3. Data Flow: "Match Candidate Generation"
-
-This is the primary workflow: searching Wikidata for a Dataset Entry.
-
-### Step-by-Step Flow
-
-1.  **Trigger**: User clicks "Start Project" or "Rerun Task".
-2.  **API Layer**:
-    -   Validates request.
-    -   Updates Task status in DB to `PENDING` or `QUEUED`.
-    -   Creates a Job Message (`type="match_entry", task_id=123`).
-    -   Pushes message to Broker.
-    -   Returns `202 Accepted` to User.
-3.  **Broker**: Holds the message in the `default` queue.
-4.  **Worker**:
-    -   Picks up message.
-    -   **Fetch**: Reads `Task` and `DatasetEntry` from DB using `task_id`.
-    -   **Execution**:
-        1.  Calls `WikidataService.search_entities(entry.name)`.
-        2.  For each result, calls `WikidataService.get_entity(qid)` (or batch fetch).
-        3.  Runs `MatchingService` to score each candidate.
-    -   **Persistence**:
-        -   Creates rows in `match_candidates` table.
-        -   Updates `tasks` table: status=`REVIEW`, `candidate_count=5`.
-    -   **Completion**: Acks the message.
-5.  **User UI**: Polls endpoint (or receives WebSocket event) showing Task moved to `Review`.
-
----
-
-## 4. Specific Workflows
-
-### 4.1 Batch Processing (Fan-Out)
-
-When starting a project with 10,000 entries, we don't create one giant job. We use a **Fan-Out** pattern.
-
-1.  **Project Start Job**: A single job runs.
-2.  **Fan-Out**: This job queries the DB for all relevant `dataset_entries`.
-3.  **Enqueue**: It pushes 10,000 individual `match_entry` jobs to the queue.
-    -   *Benefit*: High parallelism. If one fails, only one fails. Multiple workers can chew through the backlog in parallel.
-
-### 4.2 Data Import
-
-Handling large CSV uploads.
-
-1.  **Upload**: User uploads file. API streams it to shared storage (S3/Volume).
-2.  **Job**: `import_dataset` job created with `file_path`.
-3.  **Worker**:
-    -   Streams file row-by-row.
-    -   Validates schema.
-    -   Batch inserts into DB (e.g., every 1,000 rows).
-    -   Updates `dataset.row_count` progress periodically.
-
----
-
-## 5. Design Patterns & Reliability
-
-### 5.1 Race Conditions
-*Problem*: User cancels a task while worker is halfway through.
-*Solution*: Worker checks DB status before saving.
-- Check 1: Start of job. Is status still `QUEUED/PENDING`?
-- Check 2: Before writing candidates. Is status `CANCELLED`?
-If Cancelled, abort and Ack message (effectively dropping it).
+1.  **Transient Error** (e.g., `WikidataNetworkError`):
+    -   **Action**: NACK with Requeue.
+    -   **Backoff**: Broker should apply exponential backoff (e.g., Retry 1 in 5s, Retry 2 in 30s).
+2.  **Permanent Error** (e.g., `TaskNotFound`, `InvalidJSON`):
+    -   **Action**: ACK (consume) but log as Error. Do *not* retry. Update Task status to `FAILED` with error message.
+3.  **Poison Pill** (Crash Payload):
+    -   If a message causes the worker process to segfault/crash 3 times, the Broker moves it to **DLQ**.
 
 ### 5.2 Rate Limiting (Throttling)
-Wikidata has rate limits.
-- **Worker-side**: Workers use a token bucket or semaphore to limit outgoing requests/sec.
-- **Architecture-side**: Configure the Queue to only dispense N jobs per second, or limit the number of concurrent worker processes.
 
-### 5.3 Retries
-- **Transient Failures** (Network blip): Retry immediately or with linear backoff (1s, 2s, 3s).
-- **Persistent Failures** (Bug in code): Move to **Dead Letter Queue (DLQ)** after N attempts. DLQ allows developers to inspect failed payloads without blocking the main queue.
+Wikidata allows ~5 req/sec without auth, higher with auth.
+
+*   **Global Throttling**:
+    -   Use a shared Redis key (Token Bucket).
+    -   Worker checks: `if redis.incr(key) > limit: sleep(1)`.
+*   **Backpressure**:
+    -   If rate limit handling fails (API returns 429), the Worker **must** respect the `Retry-After` header.
+    -   Action: NACK message with a delay = `Retry-After`.
 
 ---
 
-## 6. Implementation Plan (Phase X)
+## 6. Operational & Maintenance
 
-Since we are avoiding specific tech in the design, here is how we map it to code:
+### 6.1 Observability
+Dashboard must track:
+-   **Queue Depth**: `sum(pending_messages)`. Constant growth = insufficient workers.
+-   **Throughput**: `jobs_per_second`.
+-   **Error Rate**: `% of jobs moving to DLQ`.
 
-1.  **Interface Definition**:
-    Define a generic `JobDispatcher` protocol in Python.
-    `class JobDispatcher: async def enqueue(job_name, **kwargs)`
-2.  **Job Registry**:
-    A mapping of job names to functions.
-    `JOBS = {"match_entry": process_match_entry}`
-3.  **Worker Entrypoint**:
-    A management command (e.g., `python manage.py runworkers`) that initializes the consumer loop.
+### 6.2 The "Sweeper" (Cron)
+A scheduled job (e.g., every 15 mins) to handle "Lost" tasks.
+-   Query: `SELECT * FROM tasks WHERE status='QUEUED' AND updated_at < NOW() - INTERVAL '1 hour'`
+-   Action: Re-enqueue these tasks (or mark as failed). This fixes cases where the Producer crashed after DB write but before Broker enqueue.
 
-This architecture ensures robust, scalable, and resilient background processing suitable for high-volume record linkage.
+---
+
+## 7. Implementation Roadmap
+
+### Phase A: Foundation (Technology Agnostic Interfaces)
+1.  Define `JobDispatcher` abstract base class.
+2.  Define `JobHandler` abstract base class.
+
+### Phase B: Infrastructure (Specifics)
+1.  **Broker**: RabbitMQ (robust) or Redis (simpler, faster). *Recommendation: Redis (via BullMQ or Celery) given stack simplicity.*
+2.  **Library**: `Celery` or `Taskiq` (modern, async-friendly).
+3.  **Storage**: Use existing PostgreSQL connection for state.
+
+### Phase C: Deployment
+1.  Containerize Worker process (`Dockerfile.worker`).
+2.  Command: `celery -A app.worker worker -l INFO`.
+3.  Scale independently of API container.
+
+---
+
+**Conclusion**: This architecture prioritizes data integrity (ACID transactions) coupled with the flexibility of distributed processing. By handling race conditions and rate limits explicitly in the design, we ensure a stable execution environment for matching millions of records.
