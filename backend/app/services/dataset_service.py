@@ -38,15 +38,45 @@ class DatasetService(BaseService[Dataset, DatasetCreate, DatasetUpdate]):
         entity_type: str | None = None,
         search: str | None = None,
     ) -> tuple[list[Dataset], int]:
-        """Get datasets with optional filters."""
-        filters: dict[str, Any] = {}
+        """Get datasets with optional filters including search."""
+        from sqlalchemy import func, or_
+
+        # Build base query with all filters at SQL level
+        base_query = select(Dataset).where(Dataset.deleted_at.is_(None))
 
         if source_type:
-            filters["source_type"] = source_type
+            base_query = base_query.where(Dataset.source_type == source_type)
         if entity_type:
-            filters["entity_type"] = entity_type
+            base_query = base_query.where(Dataset.entity_type == entity_type)
 
-        return await self.get_list(pagination, filters)
+        # Apply search filter (ILIKE on name and description)
+        if search:
+            search_pattern = f"%{search}%"
+            base_query = base_query.where(
+                or_(
+                    Dataset.name.ilike(search_pattern),
+                    Dataset.description.ilike(search_pattern),
+                )
+            )
+
+        # Count total with all filters applied
+        count_stmt = select(func.count()).select_from(base_query.subquery())
+        total_result = await self.db.execute(count_stmt)
+        total = total_result.scalar() or 0
+
+        # Apply pagination
+        offset = (pagination.page - 1) * pagination.page_size
+        paginated_query = (
+            base_query
+            .order_by(Dataset.created_at.desc())
+            .offset(offset)
+            .limit(pagination.page_size)
+        )
+
+        result = await self.db.execute(paginated_query)
+        items = list(result.scalars().all())
+
+        return items, total
 
     async def create_with_validation(self, data: DatasetCreate) -> Dataset:
         """Create dataset with slug uniqueness validation."""

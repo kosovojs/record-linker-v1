@@ -59,12 +59,15 @@ class PaginatedResponse[T](BaseModel):
                 page=pagination.page,
                 page_size=pagination.page_size,
             )
+
+    Note: has_more is auto-computed from total, page, and page_size if not provided.
     """
 
     items: list[T]
     total: int = Field(description="Total number of items across all pages")
     page: int = Field(description="Current page number")
     page_size: int = Field(description="Items per page")
+    has_more: bool = Field(default=False, description="Whether there are more pages")
 
     @property
     def pages(self) -> int:
@@ -75,8 +78,8 @@ class PaginatedResponse[T](BaseModel):
 
     @property
     def has_next(self) -> bool:
-        """Check if there's a next page."""
-        return self.page < self.pages
+        """Check if there's a next page (alias for has_more)."""
+        return self.has_more
 
     @property
     def has_prev(self) -> bool:

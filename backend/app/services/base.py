@@ -134,7 +134,14 @@ class BaseService[ModelType: BaseTableModel, CreateSchemaType, UpdateSchemaType]
         return db_obj
 
     async def soft_delete(self, db_obj: ModelType) -> ModelType:
-        """Soft delete a record by setting deleted_at."""
+        """
+        Soft delete a record by setting deleted_at.
+
+        WARNING: This does NOT cascade to child records. If you delete a parent
+        entity (e.g., Project), child entities (e.g., Tasks, Candidates) will
+        remain active but point to a deleted parent. Handle cascade manually
+        in the specific service if needed.
+        """
         db_obj.soft_delete()
         self.db.add(db_obj)
         await self.db.commit()
