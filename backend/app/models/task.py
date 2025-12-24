@@ -63,9 +63,14 @@ class Task(BaseTableModel, table=True):
     )
 
     # Accepted match - denormalized
+    # use_alter=True breaks circular FK dependency with match_candidates table
     accepted_candidate_id: int | None = Field(
         default=None,
-        sa_column=Column(BigInteger, ForeignKey("match_candidates.id"), nullable=True),
+        sa_column=Column(
+            BigInteger,
+            ForeignKey("match_candidates.id", use_alter=True),
+            nullable=True,
+        ),
     )
     accepted_wikidata_id: str | None = Field(
         default=None,
