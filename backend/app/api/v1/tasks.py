@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Path, status
 from pydantic import field_validator
 
 from app.api.deps import DbSession, Pagination
@@ -54,12 +54,35 @@ class TaskReadWithValidator(TaskRead):
 )
 async def list_tasks(
     db: DbSession,
-    project_uuid: UUID,
     pagination: Pagination,
-    status_filter: str | None = Query(default=None, alias="status"),
-    has_candidates: bool | None = Query(default=None),
-    has_accepted: bool | None = Query(default=None),
-    min_score: int | None = Query(default=None, ge=0, le=100),
+    project_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
+    status_filter: str | None = Query(
+        default=None,
+        alias="status",
+        description="Filter tasks by status",
+        examples=["pending"],
+    ),
+    has_candidates: bool | None = Query(
+        default=None,
+        description="Filter tasks that have at least one candidate",
+        examples=[True],
+    ),
+    has_accepted: bool | None = Query(
+        default=None,
+        description="Filter tasks that have an accepted candidate",
+        examples=[False],
+    ),
+    min_score: int | None = Query(
+        default=None,
+        ge=0,
+        le=100,
+        description="Filter tasks by minimum candidate score",
+        examples=[80],
+    ),
 ):
     """List all tasks for a project with filtering."""
     project_service = ProjectService(db)
@@ -101,8 +124,12 @@ async def list_tasks(
 )
 async def create_task(
     db: DbSession,
-    project_uuid: UUID,
     data: TaskCreate,
+    project_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Create a task for a project."""
     project_service = ProjectService(db)
@@ -131,8 +158,16 @@ async def create_task(
 )
 async def get_task(
     db: DbSession,
-    project_uuid: UUID,
-    task_uuid: UUID,
+    project_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Get a single task by UUID."""
     project_service = ProjectService(db)
@@ -159,9 +194,17 @@ async def get_task(
 )
 async def update_task(
     db: DbSession,
-    project_uuid: UUID,
-    task_uuid: UUID,
     data: TaskUpdate,
+    project_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Update a task."""
     project_service = ProjectService(db)
@@ -189,8 +232,16 @@ async def update_task(
 )
 async def delete_task(
     db: DbSession,
-    project_uuid: UUID,
-    task_uuid: UUID,
+    project_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Soft delete a task."""
     project_service = ProjectService(db)
@@ -213,8 +264,16 @@ async def delete_task(
 )
 async def skip_task(
     db: DbSession,
-    project_uuid: UUID,
-    task_uuid: UUID,
+    project_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        example="550e8400-e29b-41d4-a716-446655440000",
+    ),
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        example="770e8400-e29b-41d4-a716-446655440000",
+    ),
 ):
     """Skip a task."""
     project_service = ProjectService(db)
@@ -244,7 +303,11 @@ async def skip_task(
 @router.get("/tasks/{task_uuid}", response_model=TaskReadWithValidator)
 async def get_task_by_uuid(
     db: DbSession,
-    task_uuid: UUID,
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        example="770e8400-e29b-41d4-a716-446655440000",
+    ),
 ):
     """Get a task by UUID alone (alias for nested route)."""
     task_service = TaskService(db)

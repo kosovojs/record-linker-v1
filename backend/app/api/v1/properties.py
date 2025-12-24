@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Path, status
 
 from app.api.deps import DbSession, Pagination
 from app.api.utils import get_or_404, handle_conflict_error
@@ -33,9 +33,15 @@ router = APIRouter()
 async def list_properties(
     db: DbSession,
     pagination: Pagination,
-    data_type: str | None = Query(default=None, description="Filter by data type"),
+    data_type: str | None = Query(
+        default=None,
+        description="Filter properties by data type (e.g., string, quantity, time, url)",
+        examples=["string"],
+    ),
     wikidata_only: bool = Query(
-        default=False, description="Only properties with Wikidata mapping"
+        default=False,
+        description="If true, only returns properties that have a Wikidata ID mapping",
+        examples=[True],
     ),
 ):
     """List all property definitions with pagination and optional filters."""
@@ -74,7 +80,11 @@ async def create_property(
 @router.get("/{uuid}", response_model=PropertyDefinitionRead)
 async def get_property(
     db: DbSession,
-    uuid: UUID,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the property definition",
+        examples=["220e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Get a single property definition by UUID."""
     service = PropertyDefinitionService(db)
@@ -85,8 +95,12 @@ async def get_property(
 @router.patch("/{uuid}", response_model=PropertyDefinitionRead)
 async def update_property(
     db: DbSession,
-    uuid: UUID,
     data: PropertyDefinitionUpdate,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the property definition",
+        examples=["220e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Update a property definition."""
     service = PropertyDefinitionService(db)
@@ -102,7 +116,11 @@ async def update_property(
 @router.delete("/{uuid}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_property(
     db: DbSession,
-    uuid: UUID,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the property definition",
+        example="220e8400-e29b-41d4-a716-446655440000",
+    ),
 ):
     """Soft delete a property definition."""
     service = PropertyDefinitionService(db)

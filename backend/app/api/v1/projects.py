@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Path, status
 from pydantic import BaseModel, Field
 
 from app.api.deps import DbSession, Pagination
@@ -108,10 +108,15 @@ async def list_projects(
     db: DbSession,
     pagination: Pagination,
     status_filter: str | None = Query(
-        default=None, alias="status", description="Filter by project status"
+        default=None,
+        alias="status",
+        description="Filter by project status",
+        example="active",
     ),
     dataset_uuid: UUID | None = Query(
-        default=None, description="Filter by dataset UUID"
+        default=None,
+        description="Filter by the unique identifier of the dataset",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
     ),
 ):
     """List all projects with pagination and optional filters."""
@@ -153,7 +158,11 @@ async def create_project(
 @router.get("/{uuid}", response_model=ProjectRead)
 async def get_project(
     db: DbSession,
-    uuid: UUID,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Get a single project by UUID with stats."""
     service = ProjectService(db)
@@ -172,8 +181,12 @@ async def get_project(
 @router.patch("/{uuid}", response_model=ProjectRead)
 async def update_project(
     db: DbSession,
-    uuid: UUID,
     data: ProjectUpdate,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Update a project."""
     service = ProjectService(db)
@@ -190,7 +203,11 @@ async def update_project(
 @router.delete("/{uuid}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     db: DbSession,
-    uuid: UUID,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Soft delete a project."""
     service = ProjectService(db)
@@ -207,8 +224,12 @@ async def delete_project(
 @router.post("/{uuid}/start", response_model=ProjectStartResponse, status_code=status.HTTP_202_ACCEPTED)
 async def start_project(
     db: DbSession,
-    uuid: UUID,
     data: ProjectStartRequest,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Create tasks for dataset entries and transition project to active."""
     service = ProjectService(db)
@@ -233,8 +254,12 @@ async def start_project(
 @router.post("/{uuid}/rerun", response_model=ProjectRerunResponse, status_code=status.HTTP_202_ACCEPTED)
 async def rerun_tasks(
     db: DbSession,
-    uuid: UUID,
     data: ProjectRerunRequest,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Reset specific tasks for reprocessing."""
     service = ProjectService(db)
@@ -255,7 +280,11 @@ async def rerun_tasks(
 @router.get("/{uuid}/stats", response_model=ProjectStatsResponse)
 async def get_project_stats(
     db: DbSession,
-    uuid: UUID,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        example="550e8400-e29b-41d4-a716-446655440000",
+    ),
 ):
     """Get detailed project statistics computed on-the-fly."""
     service = ProjectService(db)
@@ -268,7 +297,11 @@ async def get_project_stats(
 @router.get("/{uuid}/approved-matches", response_model=ApprovedMatchesResponse)
 async def get_approved_matches(
     db: DbSession,
-    uuid: UUID,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the project",
+        example="550e8400-e29b-41d4-a716-446655440000",
+    ),
 ):
     """Get list of approved matches for a project."""
     service = ProjectService(db)

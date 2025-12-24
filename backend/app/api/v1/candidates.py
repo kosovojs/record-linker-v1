@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Path, status
 from pydantic import BaseModel, Field, field_validator
 
 from app.api.deps import DbSession
@@ -120,7 +120,11 @@ class AcceptRejectResponse(BaseModel):
 )
 async def list_candidates(
     db: DbSession,
-    task_uuid: UUID,
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """List all candidates for a task (not paginated per spec)."""
     task_service = TaskService(db)
@@ -146,8 +150,12 @@ async def list_candidates(
 )
 async def create_candidates_bulk(
     db: DbSession,
-    task_uuid: UUID,
     data: BulkCandidateCreate,
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Create candidates for a task (bulk, all-or-nothing)."""
     task_service = TaskService(db)
@@ -171,8 +179,12 @@ async def create_candidates_bulk(
 )
 async def bulk_update_candidates(
     db: DbSession,
-    task_uuid: UUID,
     data: BulkCandidateUpdateRequest,
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Bulk update candidates."""
     task_service = TaskService(db)
@@ -208,8 +220,16 @@ async def bulk_update_candidates(
 )
 async def get_candidate(
     db: DbSession,
-    task_uuid: UUID,
-    candidate_uuid: UUID,
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
+    candidate_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the candidate",
+        examples=["880e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Get a single candidate by UUID."""
     task_service = TaskService(db)
@@ -233,9 +253,17 @@ async def get_candidate(
 )
 async def update_candidate(
     db: DbSession,
-    task_uuid: UUID,
-    candidate_uuid: UUID,
     data: MatchCandidateUpdate,
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
+    candidate_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the candidate",
+        examples=["880e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Update a candidate."""
     task_service = TaskService(db)
@@ -261,8 +289,16 @@ async def update_candidate(
 )
 async def delete_candidate(
     db: DbSession,
-    task_uuid: UUID,
-    candidate_uuid: UUID,
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
+    candidate_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the candidate",
+        examples=["880e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Soft delete a candidate."""
     task_service = TaskService(db)
@@ -285,8 +321,16 @@ async def delete_candidate(
 )
 async def accept_candidate(
     db: DbSession,
-    task_uuid: UUID,
-    candidate_uuid: UUID,
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
+    ),
+    candidate_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the candidate",
+        examples=["880e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Accept a candidate, updating task status to reviewed."""
     task_service = TaskService(db)
@@ -329,8 +373,16 @@ async def accept_candidate(
 )
 async def reject_candidate(
     db: DbSession,
-    task_uuid: UUID,
-    candidate_uuid: UUID,
+    task_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the task",
+        example="770e8400-e29b-41d4-a716-446655440000",
+    ),
+    candidate_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the candidate",
+        example="880e8400-e29b-41d4-a716-446655440000",
+    ),
 ):
     """Reject a candidate."""
     task_service = TaskService(db)

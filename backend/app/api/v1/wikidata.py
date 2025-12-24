@@ -6,7 +6,7 @@ Uses WikidataService for real Wikidata API integration.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Path
 from pydantic import BaseModel, Field
 
 from app.services.wikidata_service import (
@@ -35,10 +35,28 @@ class WikidataSearchResponse(BaseModel):
 
 @router.get("/search", response_model=WikidataSearchResponse)
 async def search_wikidata(
-    query: str = Query(min_length=1, description="Search query"),
-    type: str | None = Query(default=None, description="Entity type filter"),
-    limit: int = Query(default=10, ge=1, le=50, description="Max results"),
-    language: str = Query(default="en", description="Language code"),
+    query: str = Query(
+        min_length=1,
+        description="The search string to look for in Wikidata",
+        examples=["Douglas Adams"],
+    ),
+    type: str | None = Query(
+        default=None,
+        description="Filter by Wikidata entity type (e.g., item, property)",
+        examples=["item"],
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=50,
+        description="Maximum number of results to return",
+        examples=[5],
+    ),
+    language: str = Query(
+        default="en",
+        description="ISO language code for search and labels",
+        examples=["de"],
+    ),
 ):
     """
     Search Wikidata for matching entities.
@@ -73,8 +91,16 @@ async def search_wikidata(
 
 @router.get("/entity/{qid}")
 async def get_wikidata_entity(
-    qid: str,
-    language: str = Query(default="en", description="Language code"),
+    qid: str = Path(
+        ...,
+        description="The Wikidata item ID (must start with 'Q')",
+        examples=["Q42"],
+    ),
+    language: str = Query(
+        default="en",
+        description="ISO language code for entity labels",
+        examples=["fr"],
+    ),
 ):
     """
     Get a single Wikidata entity by QID.

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Path, status
 from pydantic import field_validator
 
 from app.api.deps import DbSession, Pagination
@@ -54,9 +54,17 @@ class DatasetEntryReadWithValidator(DatasetEntryRead):
 )
 async def list_entries(
     db: DbSession,
-    dataset_uuid: UUID,
     pagination: Pagination,
-    search: str | None = Query(default=None, description="Search in display_name"),
+    dataset_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the dataset",
+        examples=["440e8400-e29b-41d4-a716-446655440000"],
+    ),
+    search: str | None = Query(
+        default=None,
+        description="Search in entry display names",
+        examples=["Berlin"],
+    ),
 ):
     """List all entries for a dataset with pagination."""
     dataset_service = DatasetService(db)
@@ -92,8 +100,12 @@ async def list_entries(
 )
 async def create_entries(
     db: DbSession,
-    dataset_uuid: UUID,
     data: list[DatasetEntryCreate],
+    dataset_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the dataset",
+        examples=["440e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Create entries for a dataset (bulk, all-or-nothing)."""
     dataset_service = DatasetService(db)
@@ -120,8 +132,16 @@ async def create_entries(
 )
 async def get_entry(
     db: DbSession,
-    dataset_uuid: UUID,
-    entry_uuid: UUID,
+    dataset_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the dataset",
+        examples=["440e8400-e29b-41d4-a716-446655440000"],
+    ),
+    entry_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the entry",
+        examples=["990e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Get a single entry by UUID."""
     dataset_service = DatasetService(db)
@@ -146,9 +166,17 @@ async def get_entry(
 )
 async def update_entry(
     db: DbSession,
-    dataset_uuid: UUID,
-    entry_uuid: UUID,
     data: DatasetEntryUpdate,
+    dataset_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the dataset",
+        examples=["440e8400-e29b-41d4-a716-446655440000"],
+    ),
+    entry_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the entry",
+        examples=["990e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Update an entry."""
     dataset_service = DatasetService(db)
@@ -178,8 +206,16 @@ async def update_entry(
 )
 async def delete_entry(
     db: DbSession,
-    dataset_uuid: UUID,
-    entry_uuid: UUID,
+    dataset_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the dataset",
+        example="440e8400-e29b-41d4-a716-446655440000",
+    ),
+    entry_uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the entry",
+        example="990e8400-e29b-41d4-a716-446655440000",
+    ),
 ):
     """Soft delete an entry."""
     dataset_service = DatasetService(db)

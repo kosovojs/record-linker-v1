@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Path, status
 
 from app.api.deps import DbSession, Pagination
 from app.api.utils import get_or_404, handle_conflict_error
@@ -29,9 +29,21 @@ router = APIRouter()
 async def list_datasets(
     db: DbSession,
     pagination: Pagination,
-    source_type: str | None = Query(default=None, description="Filter by source type"),
-    entity_type: str | None = Query(default=None, description="Filter by entity type"),
-    search: str | None = Query(default=None, description="Search in name/description"),
+    source_type: str | None = Query(
+        default=None,
+        description="Filter datasets by source type (e.g., wikidata, csv)",
+        examples=["wikidata"],
+    ),
+    entity_type: str | None = Query(
+        default=None,
+        description="Filter datasets by entity type (e.g., human, city)",
+        examples=["human"],
+    ),
+    search: str | None = Query(
+        default=None,
+        description="Search in dataset name or description",
+        examples=["population"],
+    ),
 ):
     """List all datasets with pagination and optional filters."""
     service = DatasetService(db)
@@ -68,7 +80,11 @@ async def create_dataset(
 @router.get("/{uuid}", response_model=DatasetRead)
 async def get_dataset(
     db: DbSession,
-    uuid: UUID,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the dataset",
+        examples=["440e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Get a single dataset by UUID."""
     service = DatasetService(db)
@@ -79,8 +95,12 @@ async def get_dataset(
 @router.patch("/{uuid}", response_model=DatasetRead)
 async def update_dataset(
     db: DbSession,
-    uuid: UUID,
     data: DatasetUpdate,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the dataset",
+        examples=["440e8400-e29b-41d4-a716-446655440000"],
+    ),
 ):
     """Update a dataset."""
     service = DatasetService(db)
@@ -96,7 +116,11 @@ async def update_dataset(
 @router.delete("/{uuid}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_dataset(
     db: DbSession,
-    uuid: UUID,
+    uuid: UUID = Path(
+        ...,
+        description="The unique identifier of the dataset",
+        example="440e8400-e29b-41d4-a716-446655440000",
+    ),
 ):
     """Soft delete a dataset."""
     service = DatasetService(db)
