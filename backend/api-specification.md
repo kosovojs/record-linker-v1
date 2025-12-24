@@ -1,277 +1,185 @@
 # API Specification v1
 
-This document describes the API endpoints for the Record Linker backend.
+This document describes the API endpoints for the Record Linker backend, intended for frontend developers.
 
 **Base URL:** `/api/v1`
 
 ---
 
-## Datasets
+## 1. Example Usage
 
-Endpoints for managing datasets (collections of entities to be matched).
+### Workflow: Creating a Dataset and starting a Project
 
-### `GET /datasets`
-List all datasets with pagination and filtering.
+**Step 1: Create a Dataset**
+`POST /datasets`
+```json
+{
+  "name": "Berlin Landmarks",
+  "slug": "berlin-landmarks",
+  "source_type": "web_scrape",
+  "entity_type": "building"
+}
+```
+**Response (201 Created):**
+```json
+{
+  "uuid": "440e8400-e29b-41d4-a716-446655440000",
+  "name": "Berlin Landmarks",
+  "slug": "berlin-landmarks",
+  "description": null,
+  "source_url": null,
+  "source_type": "web_scrape",
+  "entity_type": "building",
+  "entry_count": 0,
+  "last_synced_at": null,
+  "extra_data": {},
+  "created_at": "2024-12-24T15:00:00Z",
+  "updated_at": "2024-12-24T15:00:00Z"
+}
+```
 
-**Query Parameters:**
-- `page` (int, default: 1): Page number.
-- `page_size` (int, default: 20): Items per page.
-- `source_type` (str, optional): Filter by source type (e.g., `wikidata`, `csv`, `web_scrape`).
-- `entity_type` (str, optional): Filter by entity type (e.g., `human`, `city`).
-- `search` (str, optional): Search in name or description.
-
-**Response (200 OK):** `PaginatedResponse[DatasetRead]`
-
----
-
-### `POST /datasets`
-Create a new dataset.
-
-**Request Body:** `DatasetCreate`
-- `name` (str, required)
-- `slug` (str, required): URL-friendly identifier.
-- `description` (str, optional)
-- `source_url` (str, optional)
-- `source_type` (str, default: `web_scrape`)
-- `entity_type` (str, required)
-- `extra_data` (dict, optional)
-
-**Response (201 Created):** `DatasetRead`
-
----
-
-### `GET /datasets/{uuid}`
-Get a single dataset by UUID.
-
-**Path Parameters:**
-- `uuid` (UUID): Dataset unique identifier.
-
-**Response (200 OK):** `DatasetRead`
-
----
-
-### `PATCH /datasets/{uuid}`
-Update a dataset.
-
-**Request Body:** `DatasetUpdate` (all fields optional)
-
-**Response (200 OK):** `DatasetRead`
+**Step 2: Start a Project**
+`POST /projects/{uuid}/start`
+```json
+{
+  "all_entries": true
+}
+```
+**Response (202 Accepted):**
+```json
+{
+  "message": "Project started",
+  "tasks_created": 150,
+  "project_status": "pending_search"
+}
+```
 
 ---
 
-### `DELETE /datasets/{uuid}`
-Soft delete a dataset.
+## 2. API Endpoints
 
-**Response (204 No Content)**
+### Datasets
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/datasets` | List datasets (paginated). Returns `PaginatedResponse[DatasetRead]`. |
+| `POST` | `/datasets` | Create a dataset. Body: `DatasetCreate`. Returns `DatasetRead`. |
+| `GET` | `/datasets/{uuid}` | Get dataset. Returns `DatasetRead`. |
+| `PATCH` | `/datasets/{uuid}` | Update dataset. Body: `DatasetUpdate`. Returns `DatasetRead`. |
+| `DELETE` | `/datasets/{uuid}` | Soft delete dataset. Returns `204 No Content`. |
 
----
+### Dataset Entries
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/datasets/{dataset_uuid}/entries` | List entries. Returns `PaginatedResponse[DatasetEntryRead]`. |
+| `POST` | `/datasets/{dataset_uuid}/entries` | Bulk create. Body: `list[DatasetEntryCreate]`. Returns `list[DatasetEntryRead]`. |
+| `GET` | `/datasets/{dataset_uuid}/entries/{uuid}` | Get entry. Returns `DatasetEntryRead`. |
+| `PATCH` | `/datasets/{dataset_uuid}/entries/{uuid}` | Update entry. Body: `DatasetEntryUpdate`. Returns `DatasetEntryRead`. |
 
-## Dataset Entries
+### Projects
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/projects` | List projects. Returns `PaginatedResponse[ProjectRead]`. |
+| `POST` | `/projects` | Create project. Body: `ProjectCreate`. Returns `ProjectRead`. |
+| `GET` | `/projects/{uuid}` | Get project with stats. Returns `ProjectRead`. |
+| `POST` | `/projects/{uuid}/start` | Start project. Body: `ProjectStartRequest`. Returns `ProjectStartResponse`. |
+| `GET` | `/projects/{uuid}/stats` | Live stats. Returns `ProjectStatsResponse`. |
+| `GET` | `/projects/{uuid}/approved-matches` | List matches. Returns `ApprovedMatchesResponse`. |
 
-Individual records within a dataset.
+### Tasks
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/projects/{project_uuid}/tasks` | List project tasks. Returns `PaginatedResponse[TaskRead]`. |
+| `GET` | `/tasks/{uuid}` | Get task by UUID. Returns `TaskRead`. |
+| `POST` | `/projects/{project_uuid}/tasks/{uuid}/skip` | Skip task. Returns `TaskRead`. |
 
-### `GET /datasets/{dataset_uuid}/entries`
-List entries for a specific dataset.
-
-**Query Parameters:**
-- `page`, `page_size`
-- `search` (str, optional): Search in display names.
-
-**Response (200 OK):** `PaginatedResponse[DatasetEntryRead]`
-
----
-
-### `POST /datasets/{dataset_uuid}/entries`
-Bulk create entries for a dataset.
-
-**Request Body:** `list[DatasetEntryCreate]`
-- `external_id` (str, required): ID from the source system.
-- `display_name` (str, required)
-- `description` (str, optional)
-- `extra_data` (dict, optional)
-- `raw_data` (dict, optional)
-
-**Response (201 Created):** `list[DatasetEntryRead]`
-
----
-
-### `GET /datasets/{dataset_uuid}/entries/{entry_uuid}`
-Get a single entry.
-
-**Response (200 OK):** `DatasetEntryRead`
-
----
-
-### `PATCH /datasets/{dataset_uuid}/entries/{entry_uuid}`
-Update an entry.
-
-**Response (200 OK):** `DatasetEntryRead`
+### Candidates
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/tasks/{task_uuid}/candidates` | List candidates. Returns `list[MatchCandidateRead]`. |
+| `POST` | `/tasks/{task_uuid}/candidates/{uuid}/accept` | Accept match. Returns `AcceptRejectResponse`. |
+| `POST` | `/tasks/{task_uuid}/candidates/{uuid}/reject` | Reject match. Returns `MatchCandidateRead`. |
 
 ---
 
-### `DELETE /datasets/{dataset_uuid}/entries/{entry_uuid}`
-Soft delete an entry.
+## 3. Data Models
 
-**Response (204 No Content)**
+### Common
+#### `PaginatedResponse[T]`
+- `items`: `list[T]` - List of results for the current page.
+- `total`: `int` - Total number of items available.
+- `page`: `int` - Current page number.
+- `page_size`: `int` - Items per page.
+- `has_more`: `bool` - True if there are more pages.
 
----
+### Datasets
+#### `DatasetRead`
+- `uuid`: `UUID` - Unique public identifier.
+- `name`: `str` - Human-readable name.
+- `slug`: `str` - URL-friendly identifier.
+- `description`: `str | null` - Full description.
+- `source_url`: `str | null` - Link to external data source.
+- `source_type`: `str` - Enum: `web_scrape`, `csv`, `wikidata`.
+- `entity_type`: `str` - Type of records (e.g., `person`, `city`).
+- `entry_count`: `int` - Number of entries in this dataset.
+- `created_at`: `datetime` - UTC ISO 8601 creation timestamp.
 
-## Projects
+#### `DatasetCreate`
+- `name` (required), `slug` (required), `entity_type` (required), `description`, `source_url`, `source_type`, `extra_data`.
 
-Reconciliation projects that link datasets to Wikidata.
+### Projects
+#### `ProjectRead`
+- `uuid`: `UUID` - Unique identifier.
+- `dataset_uuid`: `UUID` - Associated dataset.
+- `name`: `str` - Project name.
+- `description`: `str | null` - Description.
+- `status`: `str` - Enum: `draft`, `active`, `completed`, `failed`.
+- `task_count`: `int` - Total tasks.
+- `tasks_completed`: `int` - Reviewed tasks.
+- `tasks_with_candidates`: `int` - Tasks where search found results.
+- `config`: `dict` - Matching configuration (rules, weights).
 
-### `GET /projects`
-List projects.
+#### `ProjectStatsResponse`
+- `total_tasks`: `int` - Total project tasks.
+- `by_status`: `dict[str, int]` - Count per status (`new`, `pending`, `reviewed`, `failed`).
+- `candidates`: `dict[str, int]` - Stats about candidates (`total`, `avg_per_task`).
+- `progress_percent`: `float` - Overall completion percentage.
 
-**Query Parameters:**
-- `status` (str, optional): Filter by project status (`draft`, `active`, `completed`, `failed`).
-- `dataset_uuid` (UUID, optional): Filter by dataset.
+### Tasks
+#### `TaskRead`
+- `uuid`: `UUID` - Unique identifier.
+- `project_uuid`: `UUID` - Parent project.
+- `dataset_entry_uuid`: `UUID` - The data record being matched.
+- `status`: `str` - Enum: `pending`, `reviewed`, `failed`, `skipped`.
+- `accepted_wikidata_id`: `str | null` - The QID if a match was accepted.
+- `candidate_count`: `int` - Candidates found for this record.
+- `highest_score`: `int | null` - Best match score (0-100).
+- `notes`: `str | null` - Reviewer comments.
 
-**Response (200 OK):** `PaginatedResponse[ProjectRead]`
-
----
-
-### `POST /projects`
-Create a project.
-
-**Request Body:** `ProjectCreate`
-- `name` (str, required)
-- `description` (str, optional)
-- `dataset_uuid` (UUID, required)
-- `config` (dict, optional)
-
-**Response (201 Created):** `ProjectRead`
-
----
-
-### `POST /projects/{uuid}/start`
-Start processing for a project.
-
-**Request Body:** `ProjectStartRequest`
-- `entry_uuids` (list[UUID], optional)
-- `all_entries` (bool, default: false)
-
-**Response (202 Accepted):** `ProjectStartResponse`
-
----
-
-### `GET /projects/{uuid}/stats`
-Get live project statistics.
-
-**Response (200 OK):** `ProjectStatsResponse`
-
----
-
-### `GET /projects/{uuid}/approved-matches`
-List all approved matches for a project.
-
-**Response (200 OK):** `ApprovedMatchesResponse`
-
----
-
-## Tasks
-
-Individual reconciliation tasks (one per entry).
-
-### `GET /projects/{project_uuid}/tasks`
-List tasks for a project with filtering.
-
-**Query Parameters:**
-- `status` (str, optional): Filter by status (`pending`, `failed`, `reviewed`, `skipped`).
-- `has_candidates` (bool, optional)
-- `has_accepted` (bool, optional)
-- `min_score` (int, 0-100, optional)
-
-**Response (200 OK):** `PaginatedResponse[TaskRead]`
+### Candidates
+#### `MatchCandidateRead`
+- `uuid`: `UUID` - Unique identifier.
+- `task_uuid`: `UUID` - Parent task.
+- `wikidata_id`: `str` - The QID of the Wikidata entity.
+- `status`: `str` - Enum: `new`, `accepted`, `rejected`.
+- `score`: `int` - Overall match score (0-100).
+- `source`: `str` - Enum: `search`, `manual`, `heuristic`.
+- `score_breakdown`: `dict | null` - Detailed scores per property comparison.
+- `matched_properties`: `dict | null` - Specific property values that matched.
+- `tags`: `list[str]` - Custom labels.
 
 ---
 
-### `GET /tasks/{uuid}`
-Direct access to a task by its UUID.
+## 4. Error Responses
 
-**Response (200 OK):** `TaskRead`
+The API uses standard HTTP status codes:
+- `400 Bad Request`: Validation errors or invalid state transitions.
+- `404 Not Found`: Entity with requested UUID does not exist.
+- `409 Conflict`: Business logic conflict (e.g., slug already exists).
+- `500 Internal Server Error`: Unexpected system failure.
 
----
-
-### `POST /projects/{project_uuid}/tasks/{uuid}/skip`
-Skip a task (mark as skipped).
-
-**Response (200 OK):** `TaskRead`
-
----
-
-## Candidates
-
-Potential Wikidata matches for a task.
-
-### `GET /tasks/{task_uuid}/candidates`
-List all candidates for a task.
-
-**Response (200 OK):** `list[MatchCandidateRead]`
-
----
-
-### `POST /tasks/{task_uuid}/candidates/{uuid}/accept`
-Accept a candidate as the correct match.
-
-**Response (200 OK):** `AcceptRejectResponse`
-
----
-
-### `POST /tasks/{task_uuid}/candidates/{uuid}/reject`
-Explicitly reject a candidate.
-
-**Response (200 OK):** `MatchCandidateRead`
-
----
-
-## Property Definitions
-
-Definitions for properties compared during matching.
-
-### `GET /properties`
-List property definitions.
-
-**Query Parameters:**
-- `data_type` (str, optional)
-- `wikidata_only` (bool, default: false)
-
-**Response (200 OK):** `PaginatedResponse[PropertyDefinitionRead]`
-
----
-
-## Wikidata
-
-Direct Wikidata integration.
-
-### `GET /wikidata/search`
-Search Wikidata entities.
-
-**Query Parameters:**
-- `query` (str, required)
-- `type` (str, optional, e.g., `item`)
-- `limit` (int, default: 10)
-- `language` (str, default: `en`)
-
-**Response (200 OK):** `WikidataSearchResponse`
-
----
-
-### `GET /wikidata/entity/{qid}`
-Get a specific Wikidata entity by QID (e.g., `Q42`).
-
-**Response (200 OK):** `dict` (qid, label, description, aliases)
-
----
-
-## Audit Logs
-
-History of actions performed on entities.
-
-### `GET /audit-logs`
-List audit logs.
-
-**Query Parameters:**
-- `entity_type`, `entity_uuid`, `action`, `from_date`, `to_date`
-
-**Response (200 OK):** `PaginatedResponse[AuditLogRead]`
+**Standard Error Body:**
+```json
+{
+  "detail": "Detailed error message describing the problem."
+}
+```
