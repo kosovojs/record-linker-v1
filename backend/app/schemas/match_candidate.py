@@ -60,8 +60,9 @@ class MatchCandidateBase(BaseModel):
 class MatchCandidateCreate(MatchCandidateBase):
     """Schema for creating a new match candidate."""
 
-    task_uuid: UUID = Field(
-        description="UUID of the parent task",
+    task_uuid: UUID | None = Field(
+        default=None,
+        description="UUID of the parent task (can be omitted if provided in URL path)",
     )
     score_breakdown: CandidateScoreBreakdown | None = Field(
         default=None,

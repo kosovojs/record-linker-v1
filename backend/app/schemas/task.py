@@ -37,8 +37,9 @@ class TaskBase(BaseModel):
 class TaskCreate(TaskBase):
     """Schema for creating a new task."""
 
-    project_uuid: UUID = Field(
-        description="UUID of the parent project",
+    project_uuid: UUID | None = Field(
+        default=None,
+        description="UUID of the parent project (can be omitted if provided in URL path)",
     )
     dataset_entry_uuid: UUID = Field(
         description="UUID of the dataset entry to match",

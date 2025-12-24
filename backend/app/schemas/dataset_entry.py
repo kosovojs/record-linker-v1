@@ -49,8 +49,9 @@ class DatasetEntryBase(BaseModel):
 class DatasetEntryCreate(DatasetEntryBase):
     """Schema for creating a new dataset entry."""
 
-    dataset_uuid: UUID = Field(
-        description="UUID of the parent dataset",
+    dataset_uuid: UUID | None = Field(
+        default=None,
+        description="UUID of the parent dataset (can be omitted if provided in URL path)",
     )
     raw_data: dict[str, Any] | None = Field(
         default=None,
