@@ -14,7 +14,6 @@ Candidates are nested under tasks:
 
 from __future__ import annotations
 
-import json
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
@@ -22,12 +21,18 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.api.deps import DbSession
 from app.api.utils import get_or_404
+from app.schemas.enums import CandidateSource, CandidateStatus
 from app.schemas.match_candidate import (
     MatchCandidateCreate,
     MatchCandidateRead,
     MatchCandidateUpdate,
 )
 from app.schemas.task import TaskRead
+from app.schemas.validators import (
+    parse_json_field,
+    parse_json_field_nullable,
+    parse_json_list_field,
+)
 from app.services.candidate_service import CandidateService
 from app.services.exceptions import ValidationError
 from app.services.task_service import TaskService
@@ -42,34 +47,21 @@ class MatchCandidateReadWithValidator(MatchCandidateRead):
     @field_validator("score_breakdown", "matched_properties", mode="before")
     @classmethod
     def parse_nullable_json_fields(cls, v):
-        if v is None:
-            return None
-        if isinstance(v, str):
-            return json.loads(v)
-        return v
+        return parse_json_field_nullable(v)
 
     @field_validator("extra_data", mode="before")
     @classmethod
     def parse_extra_data(cls, v):
-        if v is None:
-            return {}
-        if isinstance(v, str):
-            return json.loads(v)
-        return v
+        return parse_json_field(v)
 
     @field_validator("tags", mode="before")
     @classmethod
     def parse_tags(cls, v):
-        if v is None:
-            return []
-        if isinstance(v, str):
-            return json.loads(v)
-        return v
+        return parse_json_list_field(v)
 
     @field_validator("status", mode="before")
     @classmethod
     def parse_status(cls, v):
-        from app.schemas.enums import CandidateStatus
         if isinstance(v, str):
             return CandidateStatus(v)
         return v
@@ -77,7 +69,6 @@ class MatchCandidateReadWithValidator(MatchCandidateRead):
     @field_validator("source", mode="before")
     @classmethod
     def parse_source(cls, v):
-        from app.schemas.enums import CandidateSource
         if isinstance(v, str):
             return CandidateSource(v)
         return v
@@ -89,11 +80,7 @@ class TaskReadWithValidator(TaskRead):
     @field_validator("extra_data", mode="before")
     @classmethod
     def parse_extra_data(cls, v):
-        if v is None:
-            return {}
-        if isinstance(v, str):
-            return json.loads(v)
-        return v
+        return parse_json_field(v)
 
 
 # Request/response schemas for special endpoints

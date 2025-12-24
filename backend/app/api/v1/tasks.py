@@ -15,7 +15,6 @@ Plus direct alias:
 
 from __future__ import annotations
 
-import json
 from uuid import UUID
 
 from fastapi import APIRouter, Query, status
@@ -25,6 +24,7 @@ from app.api.deps import DbSession, Pagination
 from app.api.utils import get_or_404, handle_conflict_error, raise_not_found
 from app.schemas.common import PaginatedResponse
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
+from app.schemas.validators import parse_json_field
 from app.services.entry_service import EntryService
 from app.services.exceptions import ConflictError
 from app.services.project_service import ProjectService
@@ -40,11 +40,7 @@ class TaskReadWithValidator(TaskRead):
     @field_validator("extra_data", mode="before")
     @classmethod
     def parse_extra_data(cls, v):
-        if v is None:
-            return {}
-        if isinstance(v, str):
-            return json.loads(v)
-        return v
+        return parse_json_field(v)
 
 
 # ============================================================================

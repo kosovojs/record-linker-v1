@@ -11,7 +11,6 @@ Entries are nested under datasets:
 
 from __future__ import annotations
 
-import json
 from uuid import UUID
 
 from fastapi import APIRouter, Query, status
@@ -21,6 +20,7 @@ from app.api.deps import DbSession, Pagination
 from app.api.utils import get_or_404, handle_conflict_error
 from app.schemas.common import PaginatedResponse
 from app.schemas.dataset_entry import DatasetEntryCreate, DatasetEntryRead, DatasetEntryUpdate
+from app.schemas.validators import parse_json_field, parse_json_field_nullable
 from app.services.dataset_service import DatasetService
 from app.services.entry_service import EntryService
 from app.services.exceptions import ConflictError
@@ -32,14 +32,15 @@ router = APIRouter()
 class DatasetEntryReadWithValidator(DatasetEntryRead):
     """DatasetEntryRead with SQLite JSON compatibility."""
 
-    @field_validator("extra_data", "raw_data", mode="before")
+    @field_validator("extra_data", mode="before")
     @classmethod
-    def parse_json_fields(cls, v):
-        if v is None:
-            return {} if cls.model_fields.get("extra_data") else None
-        if isinstance(v, str):
-            return json.loads(v)
-        return v
+    def parse_extra_data(cls, v):
+        return parse_json_field(v)
+
+    @field_validator("raw_data", mode="before")
+    @classmethod
+    def parse_raw_data(cls, v):
+        return parse_json_field_nullable(v)
 
 
 # ============================================================================
