@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, insert, select, update
+from sqlalchemy import case, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dataset import Dataset
@@ -298,77 +298,84 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
         """
         Compute project statistics on-the-fly.
 
+        Optimized to use only 2 queries with CASE-based conditional aggregation:
+        - Query 1: All task stats in one aggregate query
+        - Query 2: All candidate stats in one aggregate query
+
         Returns dict with: total_tasks, by_status, candidates, avg_score, progress_percent
         """
 
-        # Total tasks
-        total_stmt = select(func.count()).where(
+        # Query 1: Task stats - single query with CASE aggregation
+        task_stats_stmt = select(
+            func.count().label("total"),
+            func.count(case((Task.status == TaskStatus.NEW, 1))).label("new"),
+            func.count(case((Task.status == TaskStatus.QUEUED_FOR_PROCESSING, 1))).label("queued_for_processing"),
+            func.count(case((Task.status == TaskStatus.PROCESSING, 1))).label("processing"),
+            func.count(case((Task.status == TaskStatus.NO_CANDIDATES_FOUND, 1))).label("no_candidates_found"),
+            func.count(case((Task.status == TaskStatus.AWAITING_REVIEW, 1))).label("awaiting_review"),
+            func.count(case((Task.status == TaskStatus.REVIEWED, 1))).label("reviewed"),
+            func.count(case((Task.status == TaskStatus.AUTO_CONFIRMED, 1))).label("auto_confirmed"),
+            func.count(case((Task.status == TaskStatus.SKIPPED, 1))).label("skipped"),
+            func.count(case((Task.status == TaskStatus.FAILED, 1))).label("failed"),
+            func.count(case((Task.status == TaskStatus.KNOWLEDGE_BASED, 1))).label("knowledge_based"),
+        ).where(
             Task.project_id == project.id,
             Task.deleted_at.is_(None),
         )
-        total_result = await self.db.execute(total_stmt)
-        total_tasks = total_result.scalar() or 0
+        task_result = await self.db.execute(task_stats_stmt)
+        task_row = task_result.one()
 
-        # Tasks by status
-        status_stmt = (
-            select(Task.status, func.count())
-            .where(Task.project_id == project.id, Task.deleted_at.is_(None))
-            .group_by(Task.status)
-        )
-        status_result = await self.db.execute(status_stmt)
-        by_status = {str(row[0]): row[1] for row in status_result.all()}
+        total_tasks = task_row.total or 0
 
-        # Candidate stats (from tasks in this project)
-        task_ids_stmt = select(Task.id).where(
+        # Build by_status dict, only include non-zero counts
+        by_status = {}
+        status_mapping = {
+            TaskStatus.NEW: task_row.new,
+            TaskStatus.QUEUED_FOR_PROCESSING: task_row.queued_for_processing,
+            TaskStatus.PROCESSING: task_row.processing,
+            TaskStatus.NO_CANDIDATES_FOUND: task_row.no_candidates_found,
+            TaskStatus.AWAITING_REVIEW: task_row.awaiting_review,
+            TaskStatus.REVIEWED: task_row.reviewed,
+            TaskStatus.AUTO_CONFIRMED: task_row.auto_confirmed,
+            TaskStatus.SKIPPED: task_row.skipped,
+            TaskStatus.FAILED: task_row.failed,
+            TaskStatus.KNOWLEDGE_BASED: task_row.knowledge_based,
+        }
+        for status, count in status_mapping.items():
+            if count:
+                by_status[str(status)] = count
+
+        # Query 2: Candidate stats - single query with CASE aggregation
+        task_ids_subquery = select(Task.id).where(
             Task.project_id == project.id,
             Task.deleted_at.is_(None),
-        )
+        ).scalar_subquery()
 
-        candidates_total_stmt = select(func.count()).where(
-            MatchCandidate.task_id.in_(task_ids_stmt),
+        candidate_stats_stmt = select(
+            func.count().label("total"),
+            func.count(case((MatchCandidate.status == CandidateStatus.ACCEPTED, 1))).label("accepted"),
+            func.count(case((MatchCandidate.status == CandidateStatus.REJECTED, 1))).label("rejected"),
+            func.avg(case((MatchCandidate.status == CandidateStatus.ACCEPTED, MatchCandidate.score))).label("avg_score"),
+        ).where(
+            MatchCandidate.task_id.in_(task_ids_subquery),
             MatchCandidate.deleted_at.is_(None),
         )
-        candidates_total_result = await self.db.execute(candidates_total_stmt)
-        total_candidates = candidates_total_result.scalar() or 0
-
-        accepted_stmt = select(func.count()).where(
-            MatchCandidate.task_id.in_(task_ids_stmt),
-            MatchCandidate.status == CandidateStatus.ACCEPTED,
-            MatchCandidate.deleted_at.is_(None),
-        )
-        accepted_result = await self.db.execute(accepted_stmt)
-        accepted_candidates = accepted_result.scalar() or 0
-
-        rejected_stmt = select(func.count()).where(
-            MatchCandidate.task_id.in_(task_ids_stmt),
-            MatchCandidate.status == CandidateStatus.REJECTED,
-            MatchCandidate.deleted_at.is_(None),
-        )
-        rejected_result = await self.db.execute(rejected_stmt)
-        rejected_candidates = rejected_result.scalar() or 0
-
-        # Average score of accepted candidates
-        avg_stmt = select(func.avg(MatchCandidate.score)).where(
-            MatchCandidate.task_id.in_(task_ids_stmt),
-            MatchCandidate.status == CandidateStatus.ACCEPTED,
-            MatchCandidate.deleted_at.is_(None),
-        )
-        avg_result = await self.db.execute(avg_stmt)
-        avg_score = avg_result.scalar()
+        candidate_result = await self.db.execute(candidate_stats_stmt)
+        candidate_row = candidate_result.one()
 
         # Progress percent (reviewed + skipped tasks / total)
-        completed_count = by_status.get(TaskStatus.REVIEWED, 0) + by_status.get(TaskStatus.SKIPPED, 0)
+        completed_count = (task_row.reviewed or 0) + (task_row.skipped or 0)
         progress_percent = (completed_count / total_tasks * 100) if total_tasks > 0 else 0.0
 
         return {
             "total_tasks": total_tasks,
             "by_status": by_status,
             "candidates": {
-                "total": total_candidates,
-                "accepted": accepted_candidates,
-                "rejected": rejected_candidates,
+                "total": candidate_row.total or 0,
+                "accepted": candidate_row.accepted or 0,
+                "rejected": candidate_row.rejected or 0,
             },
-            "avg_score": round(avg_score, 1) if avg_score else None,
+            "avg_score": round(candidate_row.avg_score, 1) if candidate_row.avg_score else None,
             "progress_percent": round(progress_percent, 1),
         }
 
