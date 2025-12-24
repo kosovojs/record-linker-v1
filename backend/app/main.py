@@ -2,10 +2,18 @@
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
+from app.api.v1 import api_router
 from app.config import get_settings
+from app.services.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ServiceError,
+    ValidationError,
+)
 
 settings = get_settings()
 
@@ -32,14 +40,39 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
-# CORS middleware
+# CORS middleware - configurable via settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Global exception handlers for service layer exceptions
+@app.exception_handler(NotFoundError)
+async def not_found_exception_handler(request: Request, exc: NotFoundError):
+    """Convert NotFoundError to 404 response."""
+    return JSONResponse(status_code=404, content={"detail": exc.message})
+
+
+@app.exception_handler(ConflictError)
+async def conflict_exception_handler(request: Request, exc: ConflictError):
+    """Convert ConflictError to 409 response."""
+    return JSONResponse(status_code=409, content={"detail": exc.message})
+
+
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request: Request, exc: ValidationError):
+    """Convert ValidationError to 400 response."""
+    return JSONResponse(status_code=400, content={"detail": exc.message})
+
+
+@app.exception_handler(ServiceError)
+async def service_exception_handler(request: Request, exc: ServiceError):
+    """Convert generic ServiceError to 500 response."""
+    return JSONResponse(status_code=500, content={"detail": exc.message})
 
 
 @app.get("/health", tags=["Health"])
@@ -59,7 +92,5 @@ async def root():
     }
 
 
-# API v1 router
-from app.api.v1 import api_router
-
+# Include API v1 router
 app.include_router(api_router, prefix=settings.api_v1_prefix)

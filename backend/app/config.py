@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     default_page_size: int = 20
     max_page_size: int = 100
 
+    # CORS - comma-separated list of allowed origins
+    allowed_origins: list[str] = ["*"]
+
 
 @lru_cache
 def get_settings() -> Settings:
