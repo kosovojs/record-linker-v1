@@ -184,16 +184,18 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
         if not entries:
             raise ValidationError("No entries found to create tasks for")
 
-        # Create tasks for each entry (skip if already exists)
+        # Batch-fetch all existing task entry IDs to avoid N+1 queries
+        existing_stmt = select(Task.dataset_entry_id).where(
+            Task.project_id == project.id,
+            Task.deleted_at.is_(None),
+        )
+        existing_result = await self.db.execute(existing_stmt)
+        existing_entry_ids = set(existing_result.scalars().all())
+
+        # Create tasks for entries that don't already have one
         tasks_created = 0
         for entry in entries:
-            existing_stmt = select(Task).where(
-                Task.project_id == project.id,
-                Task.dataset_entry_id == entry.id,
-                Task.deleted_at.is_(None),
-            )
-            existing = await self.db.execute(existing_stmt)
-            if existing.scalar_one_or_none() is None:
+            if entry.id not in existing_entry_ids:
                 task = Task(project_id=project.id, dataset_entry_id=entry.id)
                 self.db.add(task)
                 tasks_created += 1

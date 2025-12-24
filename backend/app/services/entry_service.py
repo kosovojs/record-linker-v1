@@ -89,12 +89,24 @@ class EntryService(BaseService[DatasetEntry, DatasetEntryCreate, DatasetEntryUpd
 
         Raises ConflictError if any external_id already exists.
         """
+        # Batch-fetch all existing external IDs to avoid N+1 queries
+        external_ids = [e.external_id for e in entries]
+        existing_stmt = select(DatasetEntry.external_id).where(
+            DatasetEntry.dataset_id == dataset.id,
+            DatasetEntry.external_id.in_(external_ids),
+            DatasetEntry.deleted_at.is_(None),
+        )
+        existing_result = await self.db.execute(existing_stmt)
+        existing_ids = set(existing_result.scalars().all())
+
+        # Check for conflicts
+        conflicts = [eid for eid in external_ids if eid in existing_ids]
+        if conflicts:
+            raise ConflictError("Entry", "external_id", conflicts[0])
+
+        # Create all entries
         created = []
         for data in entries:
-            existing = await self.get_by_external_id(dataset.id, data.external_id)
-            if existing:
-                raise ConflictError("Entry", "external_id", data.external_id)
-
             create_data = data.model_dump(exclude={"dataset_uuid"})
             create_data["dataset_id"] = dataset.id
             db_obj = DatasetEntry(**create_data)
