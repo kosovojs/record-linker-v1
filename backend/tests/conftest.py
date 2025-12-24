@@ -87,7 +87,7 @@ async def test_engine(test_settings: Settings):
 
 @pytest.fixture
 async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
-    """Provide a database session for each test."""
+    """Provide a database session for each test with proper cleanup."""
     async_session_factory = async_sessionmaker(
         test_engine,
         class_=AsyncSession,
@@ -98,7 +98,33 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
 
     async with async_session_factory() as session:
         yield session
-        await session.rollback()
+
+        # Clean up all tables after each test to ensure isolation
+        # Order matters due to foreign key constraints (delete children first)
+        from app.models.audit_log import AuditLog
+        from app.models.match_candidate import MatchCandidate
+        from app.models.task import Task
+        from app.models.project import Project
+        from app.models.dataset_entry_property import DatasetEntryProperty
+        from app.models.dataset_entry import DatasetEntry
+        from app.models.property_definition import PropertyDefinition
+        from app.models.dataset import Dataset
+        from app.models.user import User
+
+        # Delete in order respecting FKs
+        for model in [
+            AuditLog,
+            MatchCandidate,
+            Task,
+            Project,
+            DatasetEntryProperty,
+            DatasetEntry,
+            PropertyDefinition,
+            Dataset,
+            User,
+        ]:
+            await session.execute(model.__table__.delete())
+        await session.commit()
 
 
 @pytest.fixture
