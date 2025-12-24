@@ -64,6 +64,10 @@ known-first-party = ["app"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+filterwarnings = [
+    # Ignore Pydantic enum serialization warnings (SQLite stores enums as strings, not an issue in production PostgreSQL)
+    "ignore:Pydantic serializer warnings:UserWarning",
+]
 
 [tool.coverage.run]
 source = ["app"]

@@ -66,6 +66,22 @@ class MatchCandidateReadWithValidator(MatchCandidateRead):
             return json.loads(v)
         return v
 
+    @field_validator("status", mode="before")
+    @classmethod
+    def parse_status(cls, v):
+        from app.schemas.enums import CandidateStatus
+        if isinstance(v, str):
+            return CandidateStatus(v)
+        return v
+
+    @field_validator("source", mode="before")
+    @classmethod
+    def parse_source(cls, v):
+        from app.schemas.enums import CandidateSource
+        if isinstance(v, str):
+            return CandidateSource(v)
+        return v
+
 
 class TaskReadWithValidator(TaskRead):
     """TaskRead with SQLite JSON compatibility."""
