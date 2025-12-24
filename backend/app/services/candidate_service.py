@@ -14,7 +14,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.match_candidate import MatchCandidate
@@ -166,22 +166,45 @@ class CandidateService(BaseService[MatchCandidate, MatchCandidateCreate, MatchCa
     async def bulk_update(
         self, candidates: list[MatchCandidate], updates: MatchCandidateUpdate
     ) -> list[MatchCandidate]:
-        """Bulk update candidates (all-or-nothing)."""
+        """
+        Bulk update candidates (all-or-nothing).
+
+        Uses a single UPDATE statement for efficiency instead of
+        individual ORM updates.
+        """
+        if not candidates:
+            return []
+
         update_data = updates.model_dump(exclude_unset=True)
+        if not update_data:
+            return candidates
 
-        for candidate in candidates:
-            for field, value in update_data.items():
-                if hasattr(candidate, field):
-                    setattr(candidate, field, value)
-            if "status" in update_data:
-                candidate.reviewed_at = datetime.now(UTC)
-            self.db.add(candidate)
+        # Add reviewed_at timestamp if status is being updated
+        if "status" in update_data:
+            update_data["reviewed_at"] = datetime.now(UTC)
 
+        # Extract UUIDs for the bulk update
+        candidate_uuids = [c.uuid for c in candidates]
+
+        # Single bulk UPDATE statement
+        stmt = (
+            update(MatchCandidate)
+            .where(
+                MatchCandidate.uuid.in_(candidate_uuids),
+                MatchCandidate.deleted_at.is_(None),
+            )
+            .values(**update_data)
+        )
+        await self.db.execute(stmt)
         await self.db.commit()
-        for candidate in candidates:
-            await self.db.refresh(candidate)
 
-        return candidates
+        # Fetch updated candidates in a single query
+        select_stmt = select(MatchCandidate).where(
+            MatchCandidate.uuid.in_(candidate_uuids),
+            MatchCandidate.deleted_at.is_(None),
+        )
+        result = await self.db.execute(select_stmt)
+        return list(result.scalars().all())
 
     async def get_by_uuids(self, uuids: list[UUID]) -> list[MatchCandidate]:
         """Get multiple candidates by their UUIDs."""
