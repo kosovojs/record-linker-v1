@@ -156,9 +156,10 @@ class TestGetEntity:
     async def test_get_entity_not_found(self, wikidata_service: WikidataService):
         """Test missing entity returns None."""
         mock_response = MagicMock()
+        # Wikidata API returns entity key with "missing" field for non-existent entities
         mock_response.json.return_value = {
             "entities": {
-                "Q999999999": {"missing": ""}
+                "Q999999999": {"id": "Q999999999", "missing": ""}
             }
         }
         mock_response.raise_for_status = MagicMock()

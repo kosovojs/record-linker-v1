@@ -231,7 +231,7 @@ class WikidataService:
         entities = data.get("entities", {})
         entity_data = entities.get(qid)
 
-        if not entity_data or entity_data.get("missing"):
+        if not entity_data or "missing" in entity_data:
             return None
 
         # Extract label
@@ -298,7 +298,7 @@ class WikidataService:
         entities = data.get("entities", {})
 
         for qid, entity_data in entities.items():
-            if entity_data.get("missing"):
+            if "missing" in entity_data:
                 continue
 
             labels = entity_data.get("labels", {})
