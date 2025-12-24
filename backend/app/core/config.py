@@ -50,22 +50,37 @@ class MatchingSettings(BaseSettings):
 
 
 class Settings(BaseSettings):
-    """Application settings."""
+    """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        case_sensitive=False,
         extra="ignore",
     )
 
-    # App
-    app_name: str = "Record Linker"
-    debug: bool = False
-
     # Database
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost/record_linker"
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/recordlinker"
 
-    # Nested settings
+    # Security
+    secret_key: str = "change-me-in-production"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24  # 1 day
+
+    # Application
+    app_name: str = "Record Linker"
+    app_version: str = "0.1.0"
+    debug: bool = False
+    api_v1_prefix: str = "/api/v1"
+
+    # Pagination defaults
+    default_page_size: int = 20
+    max_page_size: int = 100
+
+    # CORS - comma-separated list of allowed origins
+    allowed_origins: list[str] = ["*"]
+
+    # Nested settings for domain-specific config
     wikidata: WikidataSettings = WikidataSettings()
     matching: MatchingSettings = MatchingSettings()
 
