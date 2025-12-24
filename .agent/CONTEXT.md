@@ -69,10 +69,10 @@
 - Audit logs (read-only)
 - Wikidata search (stub)
 
-#### Phase 6: Services Layer
-- Business logic separation
-- Wikidata integration service
-- Matching/scoring algorithms
+#### Phase 6: Services Layer ✅ Complete
+- Wikidata integration service (niquests AsyncSession)
+- Matching/scoring algorithms (rapidfuzz)
+- Configuration management (Pydantic Settings)
 
 #### Phase 7: Migrations
 - Alembic setup
@@ -93,6 +93,8 @@ All services in `app/services/` with common patterns:
 | `task_service.py` | ✅ | Batch UUID fetch, skip helper |
 | `candidate_service.py` | ✅ | Accept/reject/bulk actions |
 | `audit_service.py` | ✅ | log_action, read-only queries |
+| `wikidata_service.py` | ✅ | search_entities, get_entity, niquests async |
+| `matching_service.py` | ✅ | NameMatcher, DateMatcher, ScoreCalculator |
 
 ### API Utilities
 
