@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "Record Linker"
+    app_version: str = "0.1.0"
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
 

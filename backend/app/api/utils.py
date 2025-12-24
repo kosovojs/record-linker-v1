@@ -6,7 +6,7 @@ Provides helper functions to reduce boilerplate in route handlers.
 
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import Any, NoReturn
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -14,10 +14,8 @@ from fastapi import HTTPException, status
 from app.services.base import BaseService
 from app.services.exceptions import ConflictError, NotFoundError
 
-T = TypeVar("T")
 
-
-def raise_not_found(entity_name: str) -> None:
+def raise_not_found(entity_name: str) -> NoReturn:
     """Raise a 404 HTTPException for a not found entity."""
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -26,7 +24,7 @@ def raise_not_found(entity_name: str) -> None:
 
 
 async def get_or_404[T](
-    service: BaseService[T, any, any],
+    service: BaseService[T, Any, Any],
     uuid: UUID,
     entity_name: str,
 ) -> T:

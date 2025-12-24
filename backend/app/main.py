@@ -10,6 +10,7 @@ from app.api.v1 import api_router
 from app.config import get_settings
 from app.services.exceptions import (
     ConflictError,
+    InvalidStateTransitionError,
     NotFoundError,
     ServiceError,
     ValidationError,
@@ -33,7 +34,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     description="A data reconciliation system for matching external data sources to Wikidata entities",
-    version="0.1.0",
+    version=settings.app_version,
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -75,6 +76,12 @@ async def service_exception_handler(request: Request, exc: ServiceError):
     return JSONResponse(status_code=500, content={"detail": exc.message})
 
 
+@app.exception_handler(InvalidStateTransitionError)
+async def invalid_state_exception_handler(request: Request, exc: InvalidStateTransitionError):
+    """Convert InvalidStateTransitionError to 409 response."""
+    return JSONResponse(status_code=409, content={"detail": exc.message})
+
+
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Health check endpoint."""
@@ -86,7 +93,7 @@ async def root():
     """Root endpoint with API information."""
     return {
         "app": settings.app_name,
-        "version": "0.1.0",
+        "version": settings.app_version,
         "docs": "/docs",
         "api": settings.api_v1_prefix,
     }
