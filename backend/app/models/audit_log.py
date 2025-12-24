@@ -45,7 +45,6 @@ class AuditLog(SQLModel, table=True):
         sa_column=Column(PG_UUID(as_uuid=True), unique=True, nullable=False),
     )
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
         sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False),
     )
 

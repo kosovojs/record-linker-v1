@@ -84,29 +84,56 @@ class TaskService(BaseService[Task, TaskCreate, TaskUpdate]):
         has_accepted: bool | None = None,
         min_score: int | None = None,
     ) -> tuple[list[Task], int]:
-        """Get tasks for a project with filtering."""
-        filters: dict[str, Any] = {"project_id": project.id}
+        """Get tasks for a project with filtering at SQL level."""
+        from sqlalchemy import func
 
+        # Build base query with all filters at SQL level
+        base_query = select(Task).where(
+            Task.project_id == project.id,
+            Task.deleted_at.is_(None),
+        )
+
+        # Apply status filter
         if status:
-            filters["status"] = status
+            base_query = base_query.where(Task.status == status)
 
-        items, total = await self.get_list(pagination, filters)
-
-        # Post-filtering for boolean conditions
+        # Apply has_candidates filter at SQL level
         if has_candidates is not None:
             if has_candidates:
-                items = [t for t in items if t.candidate_count > 0]
+                base_query = base_query.where(Task.candidate_count > 0)
             else:
-                items = [t for t in items if t.candidate_count == 0]
+                base_query = base_query.where(Task.candidate_count == 0)
 
+        # Apply has_accepted filter at SQL level
         if has_accepted is not None:
             if has_accepted:
-                items = [t for t in items if t.accepted_wikidata_id is not None]
+                base_query = base_query.where(Task.accepted_wikidata_id.isnot(None))
             else:
-                items = [t for t in items if t.accepted_wikidata_id is None]
+                base_query = base_query.where(Task.accepted_wikidata_id.is_(None))
 
+        # Apply min_score filter at SQL level
         if min_score is not None:
-            items = [t for t in items if t.highest_score and t.highest_score >= min_score]
+            base_query = base_query.where(
+                Task.highest_score.isnot(None),
+                Task.highest_score >= min_score,
+            )
+
+        # Count total with all filters applied
+        count_stmt = select(func.count()).select_from(base_query.subquery())
+        total_result = await self.db.execute(count_stmt)
+        total = total_result.scalar() or 0
+
+        # Apply pagination
+        offset = (pagination.page - 1) * pagination.page_size
+        paginated_query = (
+            base_query
+            .order_by(Task.created_at.desc())
+            .offset(offset)
+            .limit(pagination.page_size)
+        )
+
+        result = await self.db.execute(paginated_query)
+        items = list(result.scalars().all())
 
         return items, total
 
@@ -168,7 +195,9 @@ class TaskService(BaseService[Task, TaskCreate, TaskUpdate]):
 
     async def skip_task(self, task: Task) -> Task:
         """Mark task as skipped."""
-        task.status = "skipped"
+        from app.schemas.enums import TaskStatus
+
+        task.status = TaskStatus.SKIPPED
         self.db.add(task)
         await self.db.commit()
         await self.db.refresh(task)

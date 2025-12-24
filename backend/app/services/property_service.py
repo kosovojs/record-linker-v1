@@ -42,17 +42,37 @@ class PropertyDefinitionService(
         data_type: str | None = None,
         wikidata_only: bool = False,
     ) -> tuple[list[PropertyDefinition], int]:
-        """Get property definitions with optional filters."""
-        filters: dict[str, Any] = {}
+        """Get property definitions with optional filters at SQL level."""
+        from sqlalchemy import func
+
+        # Build base query with all filters at SQL level
+        base_query = select(PropertyDefinition).where(
+            PropertyDefinition.deleted_at.is_(None),
+        )
 
         if data_type:
-            filters["data_type_hint"] = data_type
+            base_query = base_query.where(PropertyDefinition.data_type_hint == data_type)
 
-        items, total = await self.get_list(pagination, filters)
-
-        # Apply wikidata_only filter
+        # Apply wikidata_only filter at SQL level
         if wikidata_only:
-            items = [item for item in items if item.wikidata_property is not None]
+            base_query = base_query.where(PropertyDefinition.wikidata_property.isnot(None))
+
+        # Count total with all filters applied
+        count_stmt = select(func.count()).select_from(base_query.subquery())
+        total_result = await self.db.execute(count_stmt)
+        total = total_result.scalar() or 0
+
+        # Apply pagination
+        offset = (pagination.page - 1) * pagination.page_size
+        paginated_query = (
+            base_query
+            .order_by(PropertyDefinition.created_at.desc())
+            .offset(offset)
+            .limit(pagination.page_size)
+        )
+
+        result = await self.db.execute(paginated_query)
+        items = list(result.scalars().all())
 
         return items, total
 

@@ -117,11 +117,16 @@ class BaseService[ModelType: BaseTableModel, CreateSchemaType, UpdateSchemaType]
         data: UpdateSchemaType,
     ) -> ModelType:
         """Update an existing record."""
+        from app.models.base import utc_now
+
         update_data = data.model_dump(exclude_unset=True)
 
         for field, value in update_data.items():
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
+
+        # Always update the updated_at timestamp
+        db_obj.updated_at = utc_now()
 
         self.db.add(db_obj)
         await self.db.commit()
