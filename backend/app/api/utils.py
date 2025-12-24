@@ -25,11 +25,11 @@ def raise_not_found(entity_name: str) -> None:
     )
 
 
-async def get_or_404(
-    service: BaseService,
+async def get_or_404[T](
+    service: BaseService[T, any, any],
     uuid: UUID,
     entity_name: str,
-):
+) -> T:
     """
     Get entity by UUID or raise 404.
 

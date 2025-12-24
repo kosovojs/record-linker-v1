@@ -301,11 +301,15 @@ async def accept_candidate(
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    # Fetch related UUIDs for complete response
+    task_with_uuids = await task_service.get_with_related_uuids(task_uuid)
+    _, project_uuid, entry_uuid = task_with_uuids
+
     return AcceptRejectResponse(
         task=TaskReadWithValidator(
             **updated_task.model_dump(),
-            project_uuid=None,  # Would need to fetch project
-            dataset_entry_uuid=None,  # Would need to fetch entry
+            project_uuid=project_uuid,
+            dataset_entry_uuid=entry_uuid,
         ),
         candidate=MatchCandidateReadWithValidator(
             **updated_candidate.model_dump(),
