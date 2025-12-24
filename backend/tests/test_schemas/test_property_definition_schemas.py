@@ -60,8 +60,8 @@ class TestPropertyDefinitionCreate:
         prop = PropertyDefinitionCreate(
             name="date_of_birth",
             display_name="Date of Birth",
-            data_type_hint=PropertyDataType.DATE,
-            wikidata_property="P569",
+            data_type=PropertyDataType.DATE,
+            wikidata_id="P569",
         )
         assert prop.wikidata_property == "P569"
         assert prop.data_type_hint == PropertyDataType.DATE

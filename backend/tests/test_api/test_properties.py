@@ -26,9 +26,9 @@ async def test_create_property(client: AsyncClient):
         "name": "date_of_birth",
         "display_name": "Date of Birth",
         "description": "Person's birth date",
-        "data_type_hint": PropertyDataType.DATE.value,
+        "data_type": PropertyDataType.DATE.value,
         "is_searchable": True,
-        "wikidata_property": "P569",
+        "wikidata_id": "P569",
     }
 
     response = await client.post("/api/v1/properties", json=payload)
@@ -37,7 +37,7 @@ async def test_create_property(client: AsyncClient):
     data = response.json()
     assert data["name"] == "date_of_birth"
     assert data["display_name"] == "Date of Birth"
-    assert data["wikidata_property"] == "P569"
+    assert data["wikidata_id"] == "P569"
     assert "uuid" in data
 
 
@@ -47,7 +47,7 @@ async def test_create_property_duplicate_name(client: AsyncClient):
     payload = {
         "name": "unique_name",
         "display_name": "Unique Name",
-        "data_type_hint": PropertyDataType.TEXT.value,
+        "data_type": PropertyDataType.TEXT.value,
     }
 
     # Create first
@@ -68,7 +68,7 @@ async def test_get_property(client: AsyncClient):
     payload = {
         "name": "full_name",
         "display_name": "Full Name",
-        "data_type_hint": PropertyDataType.TEXT.value,
+        "data_type": PropertyDataType.TEXT.value,
         "is_display_field": True,
     }
     create_response = await client.post("/api/v1/properties", json=payload)
@@ -95,7 +95,7 @@ async def test_update_property(client: AsyncClient):
     payload = {
         "name": "country",
         "display_name": "Country",
-        "data_type_hint": PropertyDataType.TEXT.value,
+        "data_type": PropertyDataType.TEXT.value,
     }
     create_response = await client.post("/api/v1/properties", json=payload)
     created = create_response.json()
@@ -117,7 +117,7 @@ async def test_delete_property(client: AsyncClient):
     payload = {
         "name": "to_delete_prop",
         "display_name": "To Delete",
-        "data_type_hint": PropertyDataType.TEXT.value,
+        "data_type": PropertyDataType.TEXT.value,
     }
     create_response = await client.post("/api/v1/properties", json=payload)
     created = create_response.json()

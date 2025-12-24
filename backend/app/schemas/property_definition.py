@@ -147,18 +147,24 @@ class PropertyDefinitionUpdate(BaseModel):
 class PropertyDefinitionRead(BaseModel):
     """Schema for property definition API responses."""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     uuid: UUID = Field(description="Unique public identifier")
     name: str = Field(description="Machine-readable name")
     display_name: str = Field(description="Human-readable label")
     description: str | None = Field(description="Property description")
-    data_type_hint: str = Field(alias="data_type", description="Data type hint")
+    data_type_hint: str = Field(
+        validation_alias="data_type_hint", serialization_alias="data_type", description="Data type hint"
+    )
     is_multivalued: bool = Field(description="Allows multiple values")
     is_searchable: bool = Field(description="Indexed for search")
     is_display_field: bool = Field(description="Shown in summary views")
     display_order: int = Field(description="Display order")
-    wikidata_property: str | None = Field(alias="wikidata_id", description="Wikidata property ID")
+    wikidata_property: str | None = Field(
+        validation_alias="wikidata_property",
+        serialization_alias="wikidata_id",
+        description="Wikidata property ID",
+    )
     validation_regex: str | None = Field(description="Validation regex")
     created_at: datetime = Field(description="When created")
     updated_at: datetime = Field(description="Last update timestamp")
