@@ -1,6 +1,6 @@
 # API Specification v1
 
-This document is the absolute reference for the Record Linker API. It contains every endpoint, request/response model, and data type required for frontend development.
+This document is the absolute reference for the Record Linker API. It contains every endpoint (with descriptions), request/response model, and data type required for frontend development.
 
 **Base URL:** `/api/v1`
 
@@ -51,74 +51,74 @@ This document is the absolute reference for the Record Linker API. It contains e
 ## 2. API Endpoints
 
 ### Datasets
-| Method | Path | Request Body | Response Model |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/datasets` | - | `PaginatedResponse[DatasetRead]` |
-| `POST` | `/datasets` | `DatasetCreate` | `DatasetRead` |
-| `GET` | `/datasets/{uuid}` | - | `DatasetRead` |
-| `PATCH` | `/datasets/{uuid}` | `DatasetUpdate` | `DatasetRead` |
-| `DELETE` | `/datasets/{uuid}` | - | `204 No Content` |
+Manage collections of entities to be matched.
 
-### Dataset Entries (Nested under /datasets/{dataset_uuid})
-| Method | Path | Request Body | Response Model |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/entries` | - | `PaginatedResponse[DatasetEntryRead]` |
-| `POST` | `/entries` | `list[DatasetEntryCreate]` | `list[DatasetEntryRead]` |
-| `GET` | `/entries/{uuid}` | - | `DatasetEntryRead` |
-| `PATCH` | `/entries/{uuid}` | `DatasetEntryUpdate` | `DatasetEntryRead` |
-| `DELETE` | `/entries/{uuid}` | - | `204 No Content` |
+| Method | Path | Request | Response | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/datasets` | - | `Paginated[DatasetRead]` | List datasets with filters (name, slug, type). |
+| `POST` | `/datasets` | `DatasetCreate` | `DatasetRead` | Create a new dataset. Slug must be unique. |
+| `GET` | `/datasets/{uuid}` | - | `DatasetRead` | Retrieve detailed metadata for a specific dataset. |
+| `PATCH` | `/datasets/{uuid}` | `DatasetUpdate` | `DatasetRead` | Update dataset fields. Soft-validation on unique slug. |
+| `DELETE` | `/datasets/{uuid}` | - | `204 No Content` | Soft delete the dataset and its related entries. |
+
+### Dataset Entries
+Individual records within a dataset. Nested under `/datasets/{dataset_uuid}`.
+
+| Method | Path | Request | Response | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/entries` | - | `Paginated[EntryRead]` | List entries for a dataset. Supports search by name. |
+| `POST` | `/entries` | `list[EntryCreate]` | `list[EntryRead]` | Bulk import entries into a dataset. |
+| `GET` | `/entries/{uuid}` | - | `EntryRead` | Get a single entry's full data including raw source. |
+| `PATCH` | `/entries/{uuid}` | `EntryUpdate` | `EntryRead` | Update entry display name or raw/extra data. |
+| `DELETE` | `/entries/{uuid}` | - | `204 No Content` | Soft delete an individual record. |
 
 ### Projects
-| Method | Path | Request Body | Response Model |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/projects` | - | `PaginatedResponse[ProjectRead]` |
-| `POST` | `/projects` | `ProjectCreate` | `ProjectRead` |
-| `GET` | `/projects/{uuid}` | - | `ProjectRead` |
-| `PATCH` | `/projects/{uuid}` | `ProjectUpdate` | `ProjectRead` |
-| `DELETE` | `/projects/{uuid}` | - | `204 No Content` |
-| `POST` | `/projects/{uuid}/start` | `ProjectStartRequest` | `ProjectStartResponse` |
-| `POST` | `/projects/{uuid}/rerun` | `ProjectRerunRequest` | `ProjectRerunResponse` |
-| `GET` | `/projects/{uuid}/stats` | - | `ProjectStatsResponse` |
-| `GET` | `/projects/{uuid}/approved-matches` | - | `ApprovedMatchesResponse` |
+Reconciliation projects that link datasets to Wikidata.
+
+| Method | Path | Request | Response | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/projects` | - | `Paginated[ProjectRead]` | List reconciliation projects. |
+| `POST` | `/projects` | `ProjectCreate` | `ProjectRead` | Create a project for a specific dataset. |
+| `GET` | `/projects/{uuid}` | - | `ProjectRead` | Get project metadata and summary progress. |
+| `PATCH` | `/projects/{uuid}` | `ProjectUpdate` | `ProjectRead` | Update project name, description or config. |
+| `DELETE` | `/projects/{uuid}` | - | `204 No Content` | Soft delete project and its tasks. |
+| `POST` | `/projects/{uuid}/start` | `StartRequest` | `StartResponse` | Initialize tasks for entries and start automation. |
+| `POST` | `/projects/{uuid}/rerun` | `RerunRequest` | `RerunResponse` | Reset subsets of tasks to re-trigger automation. |
+| `GET` | `/projects/{uuid}/stats` | - | `StatsResponse` | Complex stats computed dynamically across all tasks. |
+| `GET` | `/projects/{uuid}/approved-matches` | - | `MatchesResponse` | Result set of all tasks with an accepted candidate. |
 
 ### Tasks
-| Method | Path | Request Body | Response Model |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/projects/{project_uuid}/tasks` | - | `PaginatedResponse[TaskRead]` |
-| `GET` | `/tasks/{uuid}` | - | `TaskRead` |
-| `POST` | `/projects/{project_uuid}/tasks/{uuid}/skip` | - | `TaskRead` |
+Individual matching units (one per entry in a project).
 
-### Candidates (Nested under /tasks/{task_uuid})
-| Method | Path | Request Body | Response Model |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/candidates` | - | `list[MatchCandidateRead]` |
-| `POST` | `/candidates` | `BulkCandidateCreate` | `list[MatchCandidateRead]` |
-| `GET` | `/candidates/{uuid}` | - | `MatchCandidateRead` |
-| `PATCH` | `/candidates/{uuid}` | `MatchCandidateUpdate` | `MatchCandidateRead` |
-| `PATCH` | `/candidates/bulk` | `BulkCandidateUpdateRequest` | `list[MatchCandidateRead]` |
-| `POST` | `/candidates/{uuid}/accept` | - | `AcceptRejectResponse` |
-| `POST` | `/candidates/{uuid}/reject` | - | `MatchCandidateRead` |
+| Method | Path | Request | Response | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/projects/{p_uuid}/tasks` | - | `Paginated[TaskRead]` | List tasks with filters for status, score, or candidates. |
+| `GET` | `/tasks/{uuid}` | - | `TaskRead` | Direct access to a task by its UUID. |
+| `POST` | `/projects/{p_uuid}/tasks/{uuid}/skip` | - | `TaskRead` | Mark a task as skipped to move past it in review. |
+
+### Candidates
+Potential matches discovered for a task. Nested under `/tasks/{task_uuid}`.
+
+| Method | Path | Request | Response | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/candidates` | - | `list[CandidateRead]` | List all potential Wikidata matches for the task. |
+| `POST` | `/candidates` | `BulkCandCreate` | `list[CandidateRead]` | Manually add specific Wikidata IDs as candidates. |
+| `GET` | `/candidates/{uuid}` | - | `CandidateRead` | Get details on a candidate's score breakdown. |
+| `PATCH` | `/candidates/{uuid}` | `CandUpdate` | `CandidateRead` | Update candidate notes or tags. |
+| `PATCH` | `/candidates/bulk` | `BulkUpdateReq` | `list[CandidateRead]` | Update many candidates at once (e.g. tag as AI). |
+| `POST` | `/candidates/{uuid}/accept` | - | `AcceptResponse` | CONFIRM this match. Updates task to reviewed/accepted. |
+| `POST` | `/candidates/{uuid}/reject` | - | `CandidateRead` | EXPLICITLY REJECT this match. |
 
 ### Properties
-| Method | Path | Request Body | Response Model |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/properties` | - | `PaginatedResponse[PropertyDefinitionRead]` |
-| `POST` | `/properties` | `PropertyDefinitionCreate` | `PropertyDefinitionRead` |
-| `GET` | `/properties/{uuid}` | - | `PropertyDefinitionRead` |
-| `PATCH` | `/properties/{uuid}` | `PropertyDefinitionUpdate` | `PropertyDefinitionRead` |
-| `DELETE` | `/properties/{uuid}` | - | `204 No Content` |
+Configuration for property-based comparison.
 
-### Wikidata
-| Method | Path | Request Body | Response Model |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/wikidata/search` | - | `WikidataSearchResponse` |
-| `GET` | `/wikidata/entity/{qid}` | - | `JSON Object` |
-
-### Audit Logs
-| Method | Path | Request Body | Response Model |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/audit-logs` | - | `PaginatedResponse[AuditLogRead]` |
-| `GET` | `/audit-logs/{uuid}` | - | `AuditLogRead` |
+| Method | Path | Request | Response | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/properties` | - | `Paginated[PropRead]` | List property definitions used for matching rules. |
+| `POST` | `/properties` | `PropCreate` | `PropRead` | Define a new property for comparison (e.g. P569). |
+| `GET` | `/properties/{uuid}` | - | `PropRead` | Get full property metadata including validation regex. |
+| `PATCH` | `/properties/{uuid}` | `PropUpdate` | `PropRead` | Update property metadata or display order. |
+| `DELETE` | `/properties/{uuid}` | - | `204 No Content` | Delete a property definition. |
 
 ---
 
@@ -136,7 +136,7 @@ This document is the absolute reference for the Record Linker API. It contains e
 - `detail`: `str | list[ErrorDetail]`
 
 #### `ErrorDetail`
-- `loc`: `list[str]` - Field path.
+- `loc`: `list[str]` - Field path (e.g. `["body", "slug"]`).
 - `msg`: `str` - Error message.
 - `type`: `str` - Error category.
 
@@ -148,20 +148,20 @@ This document is the absolute reference for the Record Linker API. It contains e
 - `description`: `str | null`
 - `source_url`: `str | null`
 - `source_type`: `DatasetSourceType`
-- `entity_type`: `str`
-- `entry_count`: `int`
+- `entity_type`: `str` - Expected record type (e.g. `human`).
+- `entry_count`: `int` - Cached count of related entries.
 - `last_synced_at`: `datetime | null`
 - `extra_data`: `dict`
 - `created_at`: `datetime`
 - `updated_at`: `datetime`
 
 #### `DatasetCreate`
-- `name`: `str` (required, max 100)
-- `slug`: `str` (required, max 50)
-- `entity_type`: `str` (required, max 50)
+- `name`: `str` (required)
+- `slug`: `str` (required, unique, snake_case)
+- `entity_type`: `str` (required, e.g. `museum`)
 - `description`: `str | null`
 - `source_url`: `str | null`
-- `source_type`: `DatasetSourceType` (default: `web_scrape`)
+- `source_type`: `DatasetSourceType`
 - `extra_data`: `dict | null`
 
 #### `DatasetUpdate`
@@ -171,11 +171,11 @@ This document is the absolute reference for the Record Linker API. It contains e
 #### `DatasetEntryRead`
 - `uuid`: `UUID`
 - `dataset_uuid`: `UUID | null`
-- `external_id`: `str`
-- `external_url`: `str | null`
-- `display_name`: `str | null`
-- `raw_data`: `dict | null`
-- `extra_data`: `dict`
+- `external_id`: `str` - Original ID from source.
+- `external_url`: `str | null` - Link to source.
+- `display_name`: `str | null` - Label for search/UI.
+- `raw_data`: `dict | null` - Full record from source.
+- `extra_data`: `dict` - Computed metadata.
 - `created_at`: `datetime`
 - `updated_at`: `datetime`
 
@@ -186,9 +186,6 @@ This document is the absolute reference for the Record Linker API. It contains e
 - `dataset_uuid`: `UUID` (required)
 - `raw_data`: `dict | null`
 - `extra_data`: `dict | null`
-
-#### `DatasetEntryUpdate`
-(All fields optional): `external_id`, `external_url`, `display_name`, `raw_data`, `extra_data`.
 
 ### Projects
 #### `ProjectRead`
@@ -201,7 +198,7 @@ This document is the absolute reference for the Record Linker API. It contains e
 - `task_count`: `int`
 - `tasks_completed`: `int`
 - `tasks_with_candidates`: `int`
-- `config`: `dict` (e.g., weights: `{"name": 0.8, "date": 0.2}`)
+- `config`: `dict` - Comparison logic weights and rules.
 - `created_at`: `datetime`
 - `updated_at`: `datetime`
 
@@ -211,32 +208,26 @@ This document is the absolute reference for the Record Linker API. It contains e
 - `description`: `str | null`
 - `config`: `dict | null`
 
-#### `ProjectUpdate`
-(All fields optional): `name`, `description`, `status`, `config`.
-
 ### Project Workflow
 #### `ProjectStartRequest`
-- `entry_uuids`: `list[UUID] | null`
-- `all_entries`: `bool` (default: `false`)
+- `entry_uuids`: `list[UUID] | null` - List of entries to process.
+- `all_entries`: `bool` - If true, ignores `entry_uuids`.
 
 #### `ProjectStartResponse`
-- `message`: `str`
-- `tasks_created`: `int`
-- `project_status`: `str`
+- `message`: `str` - Status message.
+- `tasks_created`: `int` - Number of tasks initialized.
+- `project_status`: `str` - New status of the project.
 
 #### `ProjectRerunRequest`
-- `criteria`: `str | null` (Options: `failed`, `no_candidates`, `no_accepted`)
-- `task_uuids`: `list[UUID] | null`
-
-#### `ProjectRerunResponse`
-- `tasks_reset`: `int`
+- `criteria`: `str | null` - Enum: `failed`, `no_candidates`, `no_accepted`.
+- `task_uuids`: `list[UUID] | null` - Specific tasks to reset.
 
 #### `ProjectStatsResponse`
 - `total_tasks`: `int`
-- `by_status`: `dict[str, int]` (Keys: `new`, `processing`, `reviewed`, etc.)
-- `candidates`: `dict[str, int]` (Keys: `total`, `avg_per_task`)
-- `avg_score`: `float | null`
-- `progress_percent`: `float`
+- `by_status`: `dict[str, int]` - Count by machine status.
+- `candidates`: `dict[str, int]` - `total` and `avg_per_task`.
+- `avg_score`: `float | null` - Avg score of best candidates.
+- `progress_percent`: `float` - Math: `completed / total`.
 
 #### `ApprovedMatchesResponse`
 - `matches`: `list[ApprovedMatch]`
@@ -256,7 +247,7 @@ This document is the absolute reference for the Record Linker API. It contains e
 - `dataset_entry_uuid`: `UUID`
 - `status`: `TaskStatus`
 - `notes`: `str | null`
-- `accepted_wikidata_id`: `str | null`
+- `accepted_wikidata_id`: `str | null` - The chosen QID.
 - `candidate_count`: `int`
 - `highest_score`: `int | null`
 - `processing_started_at`: `datetime | null`
@@ -267,25 +258,16 @@ This document is the absolute reference for the Record Linker API. It contains e
 - `created_at`: `datetime`
 - `updated_at`: `datetime`
 
-#### `TaskCreate`
-- `project_uuid`: `UUID`
-- `dataset_entry_uuid`: `UUID`
-- `status`: `TaskStatus` (default: `new`)
-- `extra_data`: `dict | null`
-
-#### `TaskUpdate`
-(All fields optional): `status`, `notes`, `accepted_wikidata_id`, `extra_data`.
-
 ### Candidates
 #### `MatchCandidateRead`
 - `uuid`: `UUID`
 - `task_uuid`: `UUID`
-- `wikidata_id`: `str`
-- `score`: `int` (0-100)
+- `wikidata_id`: `str` - Target QID.
+- `score`: `int` - Final match probability (0-100).
 - `source`: `CandidateSource`
 - `status`: `CandidateStatus`
-- `score_breakdown`: `dict | null`
-- `matched_properties`: `dict | null`
+- `score_breakdown`: `dict | null` - Scores for name, date, etc.
+- `matched_properties`: `dict | null` - Values used for comparison.
 - `notes`: `str | null`
 - `tags`: `list[str]`
 - `reviewer_uuid`: `UUID | null`
@@ -294,35 +276,22 @@ This document is the absolute reference for the Record Linker API. It contains e
 - `created_at`: `datetime`
 - `updated_at`: `datetime`
 
-#### `MatchCandidateCreate`
-- `wikidata_id`: `str` (required)
-- `score`: `int` (required)
-- `source`: `CandidateSource` (default: `automated_search`)
-- `score_breakdown`: `dict | null`
-- `matched_properties`: `dict | null`
-- `notes`: `str | null`
-- `tags`: `list[str] | null`
-- `extra_data`: `dict | null`
-
-#### `MatchCandidateUpdate`
-(All fields optional): `score`, `status`, `notes`, `tags`, `extra_data`.
-
-#### `BulkCandidateCreate`
-- `candidates`: `list[MatchCandidateCreate]` (min 1)
-
-#### `BulkCandidateUpdateRequest`
-- `candidate_uuids`: `list[UUID]` (min 1)
-- `updates`: `MatchCandidateUpdate`
-
 #### `AcceptRejectResponse`
 - `task`: `TaskRead`
 - `candidate`: `MatchCandidateRead`
 
+#### `BulkCandidateCreate`
+- `candidates`: `list[MatchCandidateCreate]`
+
+#### `BulkCandidateUpdateRequest`
+- `candidate_uuids`: `list[UUID]`
+- `updates`: `MatchCandidateUpdate` (score, status, notes, tags, extra_data)
+
 ### Properties
 #### `PropertyDefinitionRead`
 - `uuid`: `UUID`
-- `name`: `str`
-- `display_name`: `str`
+- `name`: `str` - Code-key (e.g. `birth_date`).
+- `display_name`: `str` - Visible label.
 - `description`: `str | null`
 - `data_type_hint`: `PropertyDataType`
 - `is_multivalued`: `bool`
@@ -333,44 +302,6 @@ This document is the absolute reference for the Record Linker API. It contains e
 - `validation_regex`: `str | null`
 - `created_at`: `datetime`
 - `updated_at`: `datetime`
-
-#### `PropertyDefinitionCreate`
-- `name`: `str` (required, snake_case)
-- `display_name`: `str` (required)
-- `description`: `str | null`
-- `data_type_hint`: `PropertyDataType` (default: `text`)
-- `is_multivalued`: `bool` (default: `false`)
-- `is_searchable`: `bool` (default: `true`)
-- `is_display_field`: `bool` (default: `false`)
-- `display_order`: `int` (default: `0`)
-- `wikidata_property`: `str | null` (Pattern: `P\d+`)
-- `validation_regex`: `str | null`
-
-#### `PropertyDefinitionUpdate`
-(All fields optional): `name`, `display_name`, `description`, `data_type_hint`, `is_multivalued`, `is_searchable`, `is_display_field`, `display_order`, `wikidata_property`, `validation_regex`.
-
-### Wikidata
-#### `WikidataSearchResponse`
-- `results`: `list[WikidataSearchResult]`
-
-#### `WikidataSearchResult`
-- `qid`: `str`
-- `label`: `str`
-- `description`: `str | null`
-- `aliases`: `list[str]`
-
-### Audit Logs
-#### `AuditLogRead`
-- `uuid`: `UUID`
-- `user_uuid`: `UUID | null`
-- `action`: `str` (e.g., `project.created`)
-- `entity_type`: `str` (e.g., `project`, `task`)
-- `entity_uuid`: `UUID | null`
-- `old_value`: `dict | null`
-- `new_value`: `dict | null`
-- `context`: `dict` (request context)
-- `description`: `str | null`
-- `created_at`: `datetime`
 
 ---
 
