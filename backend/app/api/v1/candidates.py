@@ -226,10 +226,14 @@ async def get_candidate(
 ):
     """Get a single candidate by UUID."""
     task_service = TaskService(db)
-    await get_or_404(task_service, task_uuid, "Task")
+    task = await get_or_404(task_service, task_uuid, "Task")
 
     candidate_service = CandidateService(db)
     candidate = await get_or_404(candidate_service, candidate_uuid, "Candidate")
+
+    # Verify candidate belongs to this task
+    if candidate.task_id != task.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found")
 
     result = MatchCandidateReadWithValidator.model_validate(candidate)
     result.task_uuid = task_uuid
@@ -248,10 +252,15 @@ async def update_candidate(
 ):
     """Update a candidate."""
     task_service = TaskService(db)
-    await get_or_404(task_service, task_uuid, "Task")
+    task = await get_or_404(task_service, task_uuid, "Task")
 
     candidate_service = CandidateService(db)
     candidate = await get_or_404(candidate_service, candidate_uuid, "Candidate")
+
+    # Verify candidate belongs to this task
+    if candidate.task_id != task.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found")
+
     updated = await candidate_service.update(candidate, data)
 
     result = MatchCandidateReadWithValidator.model_validate(updated)
@@ -270,10 +279,15 @@ async def delete_candidate(
 ):
     """Soft delete a candidate."""
     task_service = TaskService(db)
-    await get_or_404(task_service, task_uuid, "Task")
+    task = await get_or_404(task_service, task_uuid, "Task")
 
     candidate_service = CandidateService(db)
     candidate = await get_or_404(candidate_service, candidate_uuid, "Candidate")
+
+    # Verify candidate belongs to this task
+    if candidate.task_id != task.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found")
+
     await candidate_service.soft_delete(candidate)
     return None
 
@@ -293,6 +307,10 @@ async def accept_candidate(
 
     candidate_service = CandidateService(db)
     candidate = await get_or_404(candidate_service, candidate_uuid, "Candidate")
+
+    # Verify candidate belongs to this task
+    if candidate.task_id != task.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found")
 
     try:
         updated_candidate, updated_task = await candidate_service.accept_candidate(
@@ -329,10 +347,14 @@ async def reject_candidate(
 ):
     """Reject a candidate."""
     task_service = TaskService(db)
-    await get_or_404(task_service, task_uuid, "Task")
+    task = await get_or_404(task_service, task_uuid, "Task")
 
     candidate_service = CandidateService(db)
     candidate = await get_or_404(candidate_service, candidate_uuid, "Candidate")
+
+    # Verify candidate belongs to this task
+    if candidate.task_id != task.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found")
 
     try:
         updated = await candidate_service.reject_candidate(candidate)

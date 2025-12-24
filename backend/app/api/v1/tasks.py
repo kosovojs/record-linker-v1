@@ -140,11 +140,15 @@ async def get_task(
 ):
     """Get a single task by UUID."""
     project_service = ProjectService(db)
-    await get_or_404(project_service, project_uuid, "Project")
+    project = await get_or_404(project_service, project_uuid, "Project")
 
     task_service = TaskService(db)
     task, entry_uuid = await task_service.get_with_entry_uuid(task_uuid)
     if not task:
+        raise_not_found("Task")
+
+    # Verify task belongs to this project
+    if task.project_id != project.id:
         raise_not_found("Task")
 
     task_read = TaskReadWithValidator.model_validate(task)
@@ -165,10 +169,15 @@ async def update_task(
 ):
     """Update a task."""
     project_service = ProjectService(db)
-    await get_or_404(project_service, project_uuid, "Project")
+    project = await get_or_404(project_service, project_uuid, "Project")
 
     task_service = TaskService(db)
     task = await get_or_404(task_service, task_uuid, "Task")
+
+    # Verify task belongs to this project
+    if task.project_id != project.id:
+        raise_not_found("Task")
+
     updated = await task_service.update(task, data)
 
     entry = await task_service.get_entry_for_task(updated)
@@ -189,10 +198,15 @@ async def delete_task(
 ):
     """Soft delete a task."""
     project_service = ProjectService(db)
-    await get_or_404(project_service, project_uuid, "Project")
+    project = await get_or_404(project_service, project_uuid, "Project")
 
     task_service = TaskService(db)
     task = await get_or_404(task_service, task_uuid, "Task")
+
+    # Verify task belongs to this project
+    if task.project_id != project.id:
+        raise_not_found("Task")
+
     await task_service.soft_delete(task)
     return None
 
@@ -208,10 +222,15 @@ async def skip_task(
 ):
     """Skip a task."""
     project_service = ProjectService(db)
-    await get_or_404(project_service, project_uuid, "Project")
+    project = await get_or_404(project_service, project_uuid, "Project")
 
     task_service = TaskService(db)
     task = await get_or_404(task_service, task_uuid, "Task")
+
+    # Verify task belongs to this project
+    if task.project_id != project.id:
+        raise_not_found("Task")
+
     skipped = await task_service.skip_task(task)
 
     entry = await task_service.get_entry_for_task(skipped)

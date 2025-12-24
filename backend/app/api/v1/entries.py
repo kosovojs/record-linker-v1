@@ -124,10 +124,15 @@ async def get_entry(
 ):
     """Get a single entry by UUID."""
     dataset_service = DatasetService(db)
-    await get_or_404(dataset_service, dataset_uuid, "Dataset")
+    dataset = await get_or_404(dataset_service, dataset_uuid, "Dataset")
 
     entry_service = EntryService(db)
     entry = await get_or_404(entry_service, entry_uuid, "Entry")
+
+    # Verify entry belongs to this dataset
+    if entry.dataset_id != dataset.id:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
 
     entry_read = DatasetEntryReadWithValidator.model_validate(entry)
     entry_read.dataset_uuid = dataset_uuid
@@ -146,10 +151,15 @@ async def update_entry(
 ):
     """Update an entry."""
     dataset_service = DatasetService(db)
-    await get_or_404(dataset_service, dataset_uuid, "Dataset")
+    dataset = await get_or_404(dataset_service, dataset_uuid, "Dataset")
 
     entry_service = EntryService(db)
     entry = await get_or_404(entry_service, entry_uuid, "Entry")
+
+    # Verify entry belongs to this dataset
+    if entry.dataset_id != dataset.id:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
 
     try:
         updated = await entry_service.update_with_validation(entry, data)
@@ -172,9 +182,15 @@ async def delete_entry(
 ):
     """Soft delete an entry."""
     dataset_service = DatasetService(db)
-    await get_or_404(dataset_service, dataset_uuid, "Dataset")
+    dataset = await get_or_404(dataset_service, dataset_uuid, "Dataset")
 
     entry_service = EntryService(db)
     entry = await get_or_404(entry_service, entry_uuid, "Entry")
+
+    # Verify entry belongs to this dataset
+    if entry.dataset_id != dataset.id:
+        from fastapi import HTTPException, status as http_status
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Entry not found")
+
     await entry_service.soft_delete(entry)
     return None
