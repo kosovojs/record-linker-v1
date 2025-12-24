@@ -61,10 +61,13 @@
 
 ### 📋 Remaining Phases
 
-#### Phase 5: API Endpoints
-- CRUD endpoints for all entities
+#### Phase 5: API Endpoints ✅ Complete
+- All CRUD endpoints implemented
 - Bulk operations (import entries, update candidates)
 - Search/filter endpoints
+- Project workflow (start, rerun, stats, approved-matches)
+- Audit logs (read-only)
+- Wikidata search (stub)
 
 #### Phase 6: Services Layer
 - Business logic separation
@@ -85,11 +88,11 @@ All services in `app/services/` with common patterns:
 | `exceptions.py` | ✅ | ConflictError, NotFoundError, ValidationError |
 | `dataset_service.py` | ✅ | Slug validation, filtered list |
 | `property_service.py` | ✅ | Name validation |
-| `project_service.py` | ✅ | N+1 fixed with JOINs |
+| `project_service.py` | ✅ | N+1 fixed, workflow actions |
 | `entry_service.py` | ✅ | Bulk create, external_id validation |
 | `task_service.py` | ✅ | Batch UUID fetch, skip helper |
-| `candidate_service.py` | 🔜 | Accept/reject/bulk actions |
-| `audit_service.py` | 🔜 | log_action, log_bulk_action |
+| `candidate_service.py` | ✅ | Accept/reject/bulk actions |
+| `audit_service.py` | ✅ | log_action, read-only queries |
 
 ### API Utilities
 
