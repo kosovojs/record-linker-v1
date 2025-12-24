@@ -1,19 +1,26 @@
 """
-Wikidata Search API endpoint (stub).
+Wikidata Search API endpoint.
 
-Returns mock data for now - real integration in Phase 6.
+Uses WikidataService for real Wikidata API integration.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+
+from app.services.wikidata_service import (
+    WikidataService,
+    WikidataServiceError,
+    get_wikidata_service,
+)
 
 router = APIRouter()
 
 
 class WikidataSearchResult(BaseModel):
     """Single Wikidata search result."""
+
     qid: str = Field(description="Wikidata item ID (e.g., Q12345)")
     label: str = Field(description="Item label")
     description: str | None = Field(default=None, description="Item description")
@@ -22,30 +29,8 @@ class WikidataSearchResult(BaseModel):
 
 class WikidataSearchResponse(BaseModel):
     """Response for Wikidata search."""
+
     results: list[WikidataSearchResult]
-
-
-# Mock data for the stub
-MOCK_RESULTS = [
-    WikidataSearchResult(
-        qid="Q5879",
-        label="Johann Wolfgang von Goethe",
-        description="German writer and statesman (1749-1832)",
-        aliases=["Goethe", "J. W. von Goethe"],
-    ),
-    WikidataSearchResult(
-        qid="Q9438",
-        label="Friedrich Schiller",
-        description="German poet, philosopher, and playwright (1759-1805)",
-        aliases=["Schiller", "Friedrich von Schiller"],
-    ),
-    WikidataSearchResult(
-        qid="Q7200",
-        label="Alexander Pushkin",
-        description="Russian poet and writer (1799-1837)",
-        aliases=["Pushkin", "A. S. Pushkin"],
-    ),
-]
 
 
 @router.get("/search", response_model=WikidataSearchResponse)
@@ -53,20 +38,61 @@ async def search_wikidata(
     query: str = Query(min_length=1, description="Search query"),
     type: str | None = Query(default=None, description="Entity type filter"),
     limit: int = Query(default=10, ge=1, le=50, description="Max results"),
+    language: str = Query(default="en", description="Language code"),
 ):
     """
     Search Wikidata for matching entities.
 
-    Note: This is a stub returning mock data. Real Wikidata integration
-    will be implemented in Phase 6.
+    Uses the real Wikidata API via wbsearchentities action.
     """
-    # Filter mock results based on query (case-insensitive)
-    query_lower = query.lower()
-    matching = [
-        r for r in MOCK_RESULTS
-        if query_lower in r.label.lower()
-        or query_lower in (r.description or "").lower()
-        or any(query_lower in alias.lower() for alias in r.aliases)
-    ]
+    service = get_wikidata_service()
 
-    return WikidataSearchResponse(results=matching[:limit])
+    try:
+        async with service:
+            results = await service.search_entities(
+                query=query,
+                entity_type=type,
+                limit=limit,
+                language=language,
+            )
+    except WikidataServiceError as e:
+        raise HTTPException(status_code=502, detail=f"Wikidata API error: {e}") from e
+
+    return WikidataSearchResponse(
+        results=[
+            WikidataSearchResult(
+                qid=r.qid,
+                label=r.label,
+                description=r.description,
+                aliases=r.aliases or [],
+            )
+            for r in results
+        ]
+    )
+
+
+@router.get("/entity/{qid}")
+async def get_wikidata_entity(
+    qid: str,
+    language: str = Query(default="en", description="Language code"),
+):
+    """
+    Get a single Wikidata entity by QID.
+    """
+    service = get_wikidata_service()
+
+    try:
+        async with service:
+            entity = await service.get_entity(qid=qid, language=language)
+    except WikidataServiceError as e:
+        raise HTTPException(status_code=502, detail=f"Wikidata API error: {e}") from e
+
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity {qid} not found")
+
+    return {
+        "qid": entity.qid,
+        "label": entity.label,
+        "description": entity.description,
+        "aliases": entity.aliases or [],
+    }
