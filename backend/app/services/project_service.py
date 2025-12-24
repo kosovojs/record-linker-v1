@@ -387,6 +387,53 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
             for row in rows
         ]
 
+    async def soft_delete(self, db_obj: Project) -> Project:
+        """
+        Soft delete a project with cascade to Tasks and Candidates.
+
+        This overrides the base soft_delete to ensure referential integrity.
+        """
+        from app.models.base import utc_now
+
+        # Get all tasks for this project
+        task_ids_stmt = select(Task.id).where(
+            Task.project_id == db_obj.id,
+            Task.deleted_at.is_(None),
+        )
+        task_result = await self.db.execute(task_ids_stmt)
+        task_ids = list(task_result.scalars().all())
+
+        if task_ids:
+            # Soft delete all candidates for these tasks
+            now = utc_now()
+            for task_id in task_ids:
+                candidates_stmt = select(MatchCandidate).where(
+                    MatchCandidate.task_id == task_id,
+                    MatchCandidate.deleted_at.is_(None),
+                )
+                candidates_result = await self.db.execute(candidates_stmt)
+                for candidate in candidates_result.scalars().all():
+                    candidate.deleted_at = now
+                    self.db.add(candidate)
+
+            # Soft delete all tasks
+            tasks_stmt = select(Task).where(
+                Task.project_id == db_obj.id,
+                Task.deleted_at.is_(None),
+            )
+            tasks_result = await self.db.execute(tasks_stmt)
+            for task in tasks_result.scalars().all():
+                task.deleted_at = now
+                self.db.add(task)
+
+        # Soft delete the project itself
+        db_obj.soft_delete()
+        self.db.add(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+
+        return db_obj
+
 
 def get_project_service(db: AsyncSession) -> ProjectService:
     """Factory function for ProjectService."""
