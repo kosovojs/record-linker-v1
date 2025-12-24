@@ -11,7 +11,7 @@ Key methods:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -131,14 +131,14 @@ class CandidateService(BaseService[MatchCandidate, MatchCandidateCreate, MatchCa
 
         # Update candidate
         candidate.status = CandidateStatus.ACCEPTED
-        candidate.reviewed_at = datetime.utcnow()
+        candidate.reviewed_at = datetime.now(UTC)
         self.db.add(candidate)
 
         # Update task
         task.status = TaskStatus.REVIEWED
         task.accepted_wikidata_id = candidate.wikidata_id
         task.accepted_candidate_id = candidate.id
-        task.reviewed_at = datetime.utcnow()
+        task.reviewed_at = datetime.now(UTC)
         self.db.add(task)
 
         await self.db.commit()
@@ -156,7 +156,7 @@ class CandidateService(BaseService[MatchCandidate, MatchCandidateCreate, MatchCa
             )
 
         candidate.status = CandidateStatus.REJECTED
-        candidate.reviewed_at = datetime.utcnow()
+        candidate.reviewed_at = datetime.now(UTC)
         self.db.add(candidate)
         await self.db.commit()
         await self.db.refresh(candidate)
@@ -174,7 +174,7 @@ class CandidateService(BaseService[MatchCandidate, MatchCandidateCreate, MatchCa
                 if hasattr(candidate, field):
                     setattr(candidate, field, value)
             if "status" in update_data:
-                candidate.reviewed_at = datetime.utcnow()
+                candidate.reviewed_at = datetime.now(UTC)
             self.db.add(candidate)
 
         await self.db.commit()

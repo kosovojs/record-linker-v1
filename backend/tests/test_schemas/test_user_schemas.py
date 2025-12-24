@@ -1,6 +1,6 @@
 """Tests for User request/response schemas."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -130,7 +130,7 @@ class TestUserRead:
 
     def test_valid_user_read(self):
         """Test creating UserRead from valid data."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         user = UserRead(
             uuid=uuid4(),
             email="test@example.com",
@@ -147,7 +147,7 @@ class TestUserRead:
 
     def test_user_read_from_dict(self):
         """Test creating UserRead from dict (like DB result)."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         data = {
             "uuid": uuid4(),
             "email": "test@example.com",

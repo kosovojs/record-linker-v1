@@ -1,6 +1,6 @@
 """Tests for Task request/response schemas."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -78,7 +78,7 @@ class TestTaskRead:
 
     def test_valid_task_read(self):
         """Test creating TaskRead."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         task = TaskRead(
             uuid=uuid4(),
             project_uuid=uuid4(),

@@ -1,6 +1,6 @@
 """Tests for Project request/response schemas."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -84,7 +84,7 @@ class TestProjectRead:
 
     def test_valid_project_read(self):
         """Test creating ProjectRead."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         project = ProjectRead(
             uuid=uuid4(),
             dataset_uuid=uuid4(),

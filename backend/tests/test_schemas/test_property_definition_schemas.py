@@ -1,6 +1,6 @@
 """Tests for PropertyDefinition request/response schemas."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -99,7 +99,7 @@ class TestPropertyDefinitionRead:
 
     def test_valid_property_definition_read(self):
         """Test creating PropertyDefinitionRead."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         prop = PropertyDefinitionRead(
             uuid=uuid4(),
             name="country",

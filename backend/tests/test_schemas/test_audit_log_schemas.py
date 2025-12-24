@@ -1,6 +1,6 @@
 """Tests for AuditLog request/response schemas."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -51,7 +51,7 @@ class TestAuditLogRead:
 
     def test_valid_read(self):
         """Test creating AuditLogRead."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         log = AuditLogRead(
             uuid=uuid4(),
             user_uuid=uuid4(),
@@ -69,7 +69,7 @@ class TestAuditLogRead:
 
     def test_read_with_nulls(self):
         """Test AuditLogRead with null optional fields."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         log = AuditLogRead(
             uuid=uuid4(),
             user_uuid=None,

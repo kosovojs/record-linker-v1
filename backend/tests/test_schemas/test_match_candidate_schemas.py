@@ -1,6 +1,6 @@
 """Tests for MatchCandidate request/response schemas."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -118,7 +118,7 @@ class TestMatchCandidateRead:
 
     def test_valid_read(self):
         """Test creating MatchCandidateRead."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         candidate = MatchCandidateRead(
             uuid=uuid4(),
             task_uuid=uuid4(),

@@ -1,6 +1,6 @@
 """Tests for DatasetEntryProperty request/response schemas."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -81,7 +81,7 @@ class TestDatasetEntryPropertyRead:
 
     def test_valid_read(self):
         """Test creating DatasetEntryPropertyRead."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         prop = DatasetEntryPropertyRead(
             uuid=uuid4(),
             dataset_entry_uuid=uuid4(),
