@@ -10,6 +10,8 @@ from app.api.v1.projects import router as projects_router
 from app.api.v1.entries import router as entries_router
 from app.api.v1.tasks import router as tasks_router
 from app.api.v1.candidates import router as candidates_router
+from app.api.v1.audit_logs import router as audit_logs_router
+from app.api.v1.wikidata import router as wikidata_router
 
 api_router = APIRouter()
 
@@ -21,7 +23,5 @@ api_router.include_router(projects_router, prefix="/projects", tags=["Projects"]
 api_router.include_router(entries_router, tags=["Entries"])
 api_router.include_router(tasks_router, tags=["Tasks"])
 api_router.include_router(candidates_router, tags=["Candidates"])
-
-# Additional routers will be added here:
-# api_router.include_router(audit_logs_router, prefix="/audit-logs", tags=["Audit Logs"])
-# api_router.include_router(wikidata_router, prefix="/wikidata", tags=["Wikidata"])
+api_router.include_router(audit_logs_router, prefix="/audit-logs", tags=["Audit Logs"])
+api_router.include_router(wikidata_router, prefix="/wikidata", tags=["Wikidata"])
