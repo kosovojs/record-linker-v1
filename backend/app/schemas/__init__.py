@@ -6,6 +6,11 @@ Re-exports all schemas for convenient importing:
 """
 
 # Common schemas
+# Entity schemas - AuditLog
+from app.schemas.audit_log import (
+    AuditLogCreate,
+    AuditLogRead,
+)
 from app.schemas.common import (
     ErrorDetail,
     ErrorResponse,
@@ -14,6 +19,30 @@ from app.schemas.common import (
     PaginationParams,
     TimestampMixin,
     UUIDMixin,
+)
+
+# Entity schemas - Dataset
+from app.schemas.dataset import (
+    DatasetBase,
+    DatasetCreate,
+    DatasetRead,
+    DatasetUpdate,
+)
+
+# Entity schemas - DatasetEntry
+from app.schemas.dataset_entry import (
+    DatasetEntryBase,
+    DatasetEntryCreate,
+    DatasetEntryRead,
+    DatasetEntryUpdate,
+)
+
+# Entity schemas - DatasetEntryProperty
+from app.schemas.dataset_entry_property import (
+    DatasetEntryPropertyBase,
+    DatasetEntryPropertyCreate,
+    DatasetEntryPropertyRead,
+    DatasetEntryPropertyUpdate,
 )
 
 # Enums
@@ -45,44 +74,12 @@ from app.schemas.jsonb_types import (
     UserSettings,
 )
 
-# Entity schemas - User
-from app.schemas.user import (
-    UserBase,
-    UserCreate,
-    UserRead,
-    UserUpdate,
-)
-
-# Entity schemas - Dataset
-from app.schemas.dataset import (
-    DatasetBase,
-    DatasetCreate,
-    DatasetRead,
-    DatasetUpdate,
-)
-
-# Entity schemas - PropertyDefinition
-from app.schemas.property_definition import (
-    PropertyDefinitionBase,
-    PropertyDefinitionCreate,
-    PropertyDefinitionRead,
-    PropertyDefinitionUpdate,
-)
-
-# Entity schemas - DatasetEntry
-from app.schemas.dataset_entry import (
-    DatasetEntryBase,
-    DatasetEntryCreate,
-    DatasetEntryRead,
-    DatasetEntryUpdate,
-)
-
-# Entity schemas - DatasetEntryProperty
-from app.schemas.dataset_entry_property import (
-    DatasetEntryPropertyBase,
-    DatasetEntryPropertyCreate,
-    DatasetEntryPropertyRead,
-    DatasetEntryPropertyUpdate,
+# Entity schemas - MatchCandidate
+from app.schemas.match_candidate import (
+    MatchCandidateBase,
+    MatchCandidateCreate,
+    MatchCandidateRead,
+    MatchCandidateUpdate,
 )
 
 # Entity schemas - Project
@@ -93,6 +90,14 @@ from app.schemas.project import (
     ProjectUpdate,
 )
 
+# Entity schemas - PropertyDefinition
+from app.schemas.property_definition import (
+    PropertyDefinitionBase,
+    PropertyDefinitionCreate,
+    PropertyDefinitionRead,
+    PropertyDefinitionUpdate,
+)
+
 # Entity schemas - Task
 from app.schemas.task import (
     TaskBase,
@@ -101,18 +106,12 @@ from app.schemas.task import (
     TaskUpdate,
 )
 
-# Entity schemas - MatchCandidate
-from app.schemas.match_candidate import (
-    MatchCandidateBase,
-    MatchCandidateCreate,
-    MatchCandidateRead,
-    MatchCandidateUpdate,
-)
-
-# Entity schemas - AuditLog
-from app.schemas.audit_log import (
-    AuditLogCreate,
-    AuditLogRead,
+# Entity schemas - User
+from app.schemas.user import (
+    UserBase,
+    UserCreate,
+    UserRead,
+    UserUpdate,
 )
 
 __all__ = [

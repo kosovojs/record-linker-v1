@@ -1,12 +1,12 @@
 """Tests for Dataset request/response schemas."""
 
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.dataset import DatasetBase, DatasetCreate, DatasetUpdate, DatasetRead
+from app.schemas.dataset import DatasetBase, DatasetCreate, DatasetRead, DatasetUpdate
 from app.schemas.enums import DatasetSourceType
 from app.schemas.jsonb_types import DatasetExtraData
 

@@ -21,8 +21,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
 from app.api.deps import DbSession
-from app.api.utils import get_or_404, handle_conflict_error, raise_not_found
-from app.schemas.enums import CandidateStatus
+from app.api.utils import get_or_404
 from app.schemas.match_candidate import (
     MatchCandidateCreate,
     MatchCandidateRead,
@@ -30,8 +29,8 @@ from app.schemas.match_candidate import (
 )
 from app.schemas.task import TaskRead
 from app.services.candidate_service import CandidateService
-from app.services.task_service import TaskService
 from app.services.exceptions import ValidationError
+from app.services.task_service import TaskService
 
 router = APIRouter()
 

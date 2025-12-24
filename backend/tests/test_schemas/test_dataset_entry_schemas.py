@@ -1,7 +1,7 @@
 """Tests for DatasetEntry request/response schemas."""
 
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
@@ -9,8 +9,8 @@ from pydantic import ValidationError
 from app.schemas.dataset_entry import (
     DatasetEntryBase,
     DatasetEntryCreate,
-    DatasetEntryUpdate,
     DatasetEntryRead,
+    DatasetEntryUpdate,
 )
 from app.schemas.jsonb_types import DatasetEntryExtraData
 

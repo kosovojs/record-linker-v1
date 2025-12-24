@@ -1,18 +1,18 @@
 """Tests for PropertyDefinition request/response schemas."""
 
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
+from app.schemas.enums import PropertyDataType
 from app.schemas.property_definition import (
     PropertyDefinitionBase,
     PropertyDefinitionCreate,
-    PropertyDefinitionUpdate,
     PropertyDefinitionRead,
+    PropertyDefinitionUpdate,
 )
-from app.schemas.enums import PropertyDataType
 
 
 class TestPropertyDefinitionBase:

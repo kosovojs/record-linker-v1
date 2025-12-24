@@ -23,8 +23,8 @@ from app.schemas.property_definition import (
     PropertyDefinitionRead,
     PropertyDefinitionUpdate,
 )
-from app.services.property_service import PropertyDefinitionService
 from app.services.exceptions import ConflictError
+from app.services.property_service import PropertyDefinitionService
 
 router = APIRouter()
 

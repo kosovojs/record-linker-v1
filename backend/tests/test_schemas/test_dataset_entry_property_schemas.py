@@ -1,7 +1,7 @@
 """Tests for DatasetEntryProperty request/response schemas."""
 
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
@@ -9,8 +9,8 @@ from pydantic import ValidationError
 from app.schemas.dataset_entry_property import (
     DatasetEntryPropertyBase,
     DatasetEntryPropertyCreate,
-    DatasetEntryPropertyUpdate,
     DatasetEntryPropertyRead,
+    DatasetEntryPropertyUpdate,
 )
 from app.schemas.enums import PropertyValueSource
 

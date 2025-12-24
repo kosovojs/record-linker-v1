@@ -59,7 +59,7 @@ async def root():
     }
 
 
-
 # API v1 router
 from app.api.v1 import api_router
+
 app.include_router(api_router, prefix=settings.api_v1_prefix)

@@ -19,7 +19,6 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 # JSONB → JSON compatibility for SQLite
 # SQLite doesn't have JSONB, so we need to render it as JSON (which is TEXT)
 # ============================================================================
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler
 
 
@@ -29,8 +28,6 @@ def _visit_JSONB(self, type_, **kw):
 
 
 SQLiteTypeCompiler.visit_JSONB = _visit_JSONB
-
-
 
 
 @pytest.fixture(scope="session")
@@ -62,15 +59,15 @@ async def test_engine(test_settings: Settings):
 
     # Import all models explicitly to ensure they're registered with SQLModel.metadata
     # This is necessary for proper FK ordering during table creation
-    from app.models.user import User  # noqa: F401
+    from app.models.audit_log import AuditLog  # noqa: F401
     from app.models.dataset import Dataset  # noqa: F401
-    from app.models.property_definition import PropertyDefinition  # noqa: F401
     from app.models.dataset_entry import DatasetEntry  # noqa: F401
     from app.models.dataset_entry_property import DatasetEntryProperty  # noqa: F401
-    from app.models.project import Project  # noqa: F401
-    from app.models.task import Task  # noqa: F401
     from app.models.match_candidate import MatchCandidate  # noqa: F401
-    from app.models.audit_log import AuditLog  # noqa: F401
+    from app.models.project import Project  # noqa: F401
+    from app.models.property_definition import PropertyDefinition  # noqa: F401
+    from app.models.task import Task  # noqa: F401
+    from app.models.user import User  # noqa: F401
 
     # Create all tables
     async with engine.begin() as conn:
@@ -102,13 +99,13 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
         # Clean up all tables after each test to ensure isolation
         # Order matters due to foreign key constraints (delete children first)
         from app.models.audit_log import AuditLog
-        from app.models.match_candidate import MatchCandidate
-        from app.models.task import Task
-        from app.models.project import Project
-        from app.models.dataset_entry_property import DatasetEntryProperty
-        from app.models.dataset_entry import DatasetEntry
-        from app.models.property_definition import PropertyDefinition
         from app.models.dataset import Dataset
+        from app.models.dataset_entry import DatasetEntry
+        from app.models.dataset_entry_property import DatasetEntryProperty
+        from app.models.match_candidate import MatchCandidate
+        from app.models.project import Project
+        from app.models.property_definition import PropertyDefinition
+        from app.models.task import Task
         from app.models.user import User
 
         # Delete in order respecting FKs

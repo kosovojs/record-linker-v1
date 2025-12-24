@@ -13,11 +13,10 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit_log import AuditLog
-from app.schemas.audit_log import AuditLogCreate
 from app.schemas.common import PaginationParams
 
 

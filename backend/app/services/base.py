@@ -12,7 +12,7 @@ Provides async methods for:
 
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -27,7 +27,7 @@ CreateSchemaType = TypeVar("CreateSchemaType")
 UpdateSchemaType = TypeVar("UpdateSchemaType")
 
 
-class BaseService(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+class BaseService[ModelType: BaseTableModel, CreateSchemaType, UpdateSchemaType]:
     """
     Generic base service with CRUD operations.
 

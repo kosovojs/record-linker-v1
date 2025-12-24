@@ -1,7 +1,7 @@
 """Tests for AuditLog request/response schemas."""
 
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError

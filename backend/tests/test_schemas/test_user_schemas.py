@@ -1,14 +1,14 @@
 """Tests for User request/response schemas."""
 
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.user import UserBase, UserCreate, UserUpdate, UserRead
 from app.schemas.enums import UserRole, UserStatus
 from app.schemas.jsonb_types import UserSettings
+from app.schemas.user import UserBase, UserCreate, UserRead, UserUpdate
 
 
 class TestUserBase:

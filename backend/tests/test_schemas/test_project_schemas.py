@@ -1,19 +1,19 @@
 """Tests for Project request/response schemas."""
 
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
+from app.schemas.enums import ProjectStatus
+from app.schemas.jsonb_types import ProjectConfig
 from app.schemas.project import (
     ProjectBase,
     ProjectCreate,
-    ProjectUpdate,
     ProjectRead,
+    ProjectUpdate,
 )
-from app.schemas.enums import ProjectStatus
-from app.schemas.jsonb_types import ProjectConfig
 
 
 class TestProjectBase:

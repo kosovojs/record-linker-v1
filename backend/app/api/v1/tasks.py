@@ -25,10 +25,10 @@ from app.api.deps import DbSession, Pagination
 from app.api.utils import get_or_404, handle_conflict_error, raise_not_found
 from app.schemas.common import PaginatedResponse
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
-from app.services.project_service import ProjectService
-from app.services.task_service import TaskService
 from app.services.entry_service import EntryService
 from app.services.exceptions import ConflictError
+from app.services.project_service import ProjectService
+from app.services.task_service import TaskService
 
 router = APIRouter()
 

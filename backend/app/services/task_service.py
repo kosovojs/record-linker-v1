@@ -10,9 +10,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.task import Task
-from app.models.project import Project
 from app.models.dataset_entry import DatasetEntry
+from app.models.project import Project
+from app.models.task import Task
 from app.schemas.common import PaginationParams
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.base import BaseService

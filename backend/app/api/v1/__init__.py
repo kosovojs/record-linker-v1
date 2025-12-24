@@ -4,13 +4,13 @@ API v1 router - aggregates all endpoint routers.
 
 from fastapi import APIRouter
 
-from app.api.v1.datasets import router as datasets_router
-from app.api.v1.properties import router as properties_router
-from app.api.v1.projects import router as projects_router
-from app.api.v1.entries import router as entries_router
-from app.api.v1.tasks import router as tasks_router
-from app.api.v1.candidates import router as candidates_router
 from app.api.v1.audit_logs import router as audit_logs_router
+from app.api.v1.candidates import router as candidates_router
+from app.api.v1.datasets import router as datasets_router
+from app.api.v1.entries import router as entries_router
+from app.api.v1.projects import router as projects_router
+from app.api.v1.properties import router as properties_router
+from app.api.v1.tasks import router as tasks_router
 from app.api.v1.wikidata import router as wikidata_router
 
 api_router = APIRouter()

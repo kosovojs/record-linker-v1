@@ -14,7 +14,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.match_candidate import MatchCandidate
@@ -22,7 +22,7 @@ from app.models.task import Task
 from app.schemas.enums import CandidateStatus, TaskStatus
 from app.schemas.match_candidate import MatchCandidateCreate, MatchCandidateUpdate
 from app.services.base import BaseService
-from app.services.exceptions import ConflictError, ValidationError
+from app.services.exceptions import ValidationError
 
 
 class CandidateService(BaseService[MatchCandidate, MatchCandidateCreate, MatchCandidateUpdate]):

@@ -1,19 +1,19 @@
 """Tests for MatchCandidate request/response schemas."""
 
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
+from app.schemas.enums import CandidateSource, CandidateStatus
+from app.schemas.jsonb_types import CandidateMatchedProperties, CandidateScoreBreakdown
 from app.schemas.match_candidate import (
     MatchCandidateBase,
     MatchCandidateCreate,
-    MatchCandidateUpdate,
     MatchCandidateRead,
+    MatchCandidateUpdate,
 )
-from app.schemas.enums import CandidateSource, CandidateStatus
-from app.schemas.jsonb_types import CandidateScoreBreakdown, CandidateMatchedProperties
 
 
 class TestMatchCandidateBase:

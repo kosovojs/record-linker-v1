@@ -7,7 +7,7 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
-from app.schemas.enums import CandidateSource, DatasetSourceType
+from app.schemas.enums import DatasetSourceType
 
 
 @pytest.fixture

@@ -26,9 +26,9 @@ from app.api.deps import DbSession, Pagination
 from app.api.utils import get_or_404, raise_not_found
 from app.schemas.common import PaginatedResponse
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
-from app.services.project_service import ProjectService
 from app.services.dataset_service import DatasetService
 from app.services.exceptions import ValidationError
+from app.services.project_service import ProjectService
 
 router = APIRouter()
 

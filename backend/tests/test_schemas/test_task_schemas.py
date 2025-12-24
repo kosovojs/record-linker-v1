@@ -1,18 +1,18 @@
 """Tests for Task request/response schemas."""
 
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
+from app.schemas.enums import TaskStatus
 from app.schemas.task import (
     TaskBase,
     TaskCreate,
-    TaskUpdate,
     TaskRead,
+    TaskUpdate,
 )
-from app.schemas.enums import TaskStatus
 
 
 class TestTaskBase:
