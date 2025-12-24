@@ -7,13 +7,14 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dataset_entry import DatasetEntry
 from app.models.project import Project
 from app.models.task import Task
 from app.schemas.common import PaginationParams
+from app.schemas.enums import TaskStatus
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.base import BaseService
 from app.services.exceptions import ConflictError
@@ -195,8 +196,6 @@ class TaskService(BaseService[Task, TaskCreate, TaskUpdate]):
 
     async def skip_task(self, task: Task) -> Task:
         """Mark task as skipped."""
-        from app.schemas.enums import TaskStatus
-
         task.status = TaskStatus.SKIPPED
         self.db.add(task)
         await self.db.commit()

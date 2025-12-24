@@ -18,7 +18,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import BaseTableModel
+from app.models.base import BaseTableModel, utc_now
 from app.schemas.common import PaginationParams
 
 # Type variables for generic service
@@ -117,7 +117,6 @@ class BaseService[ModelType: BaseTableModel, CreateSchemaType, UpdateSchemaType]
         data: UpdateSchemaType,
     ) -> ModelType:
         """Update an existing record."""
-        from app.models.base import utc_now
 
         update_data = data.model_dump(exclude_unset=True)
 
