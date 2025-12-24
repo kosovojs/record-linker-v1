@@ -56,10 +56,13 @@ class PropertyDataType(StrEnum):
 
     TEXT = "text"
     DATE = "date"
+    TIME = "time"
     NUMBER = "number"
+    QUANTITY = "quantity"
     URL = "url"
     EMAIL = "email"
     IDENTIFIER = "identifier"
+    COORDINATE = "coordinate"
 
 
 class PropertyValueSource(StrEnum):

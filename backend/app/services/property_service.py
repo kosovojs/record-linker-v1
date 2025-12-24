@@ -82,6 +82,11 @@ class PropertyDefinitionService(
         existing = await self.get_by_name(data.name)
         if existing:
             raise ConflictError("Property", "name", data.name)
+
+        # Default display_name to name if not provided
+        if not data.display_name:
+            data.display_name = data.name
+
         return await self.create(data)
 
     async def update_with_validation(

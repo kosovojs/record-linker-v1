@@ -29,16 +29,18 @@ __all__ = [
 class DatasetBase(BaseModel):
     """Shared fields for dataset create/update operations."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str = Field(
         min_length=1,
         max_length=255,
         description="Human-readable dataset name",
     )
-    slug: str = Field(
-        min_length=1,
+    slug: str | None = Field(
+        default=None,
         max_length=100,
         pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
-        description="URL-friendly identifier (lowercase, hyphens allowed)",
+        description="URL-friendly identifier (defaults to slugified name if not provided)",
     )
     description: str | None = Field(
         default=None,

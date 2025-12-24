@@ -28,16 +28,18 @@ __all__ = [
 class PropertyDefinitionBase(BaseModel):
     """Shared fields for property definition create/update operations."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str = Field(
         min_length=1,
         max_length=100,
         pattern=r"^[a-z][a-z0-9_]*$",
         description="Machine-readable name (e.g., 'date_of_birth')",
     )
-    display_name: str = Field(
-        min_length=1,
+    display_name: str | None = Field(
+        default=None,
         max_length=255,
-        description="Human-readable label (e.g., 'Date of Birth')",
+        description="Human-readable label (defaults to name if not provided)",
     )
     description: str | None = Field(
         default=None,
@@ -45,6 +47,7 @@ class PropertyDefinitionBase(BaseModel):
     )
     data_type_hint: PropertyDataType = Field(
         default=PropertyDataType.TEXT,
+        alias="data_type",
         description="Hint for UI rendering and validation",
     )
     is_multivalued: bool = Field(
@@ -73,6 +76,7 @@ class PropertyDefinitionCreate(PropertyDefinitionBase):
         default=None,
         max_length=20,
         pattern=r"^P\d+$",
+        alias="wikidata_id",
         description="Wikidata property ID (e.g., 'P569' for DOB)",
     )
     validation_regex: str | None = Field(
@@ -84,6 +88,8 @@ class PropertyDefinitionCreate(PropertyDefinitionBase):
 
 class PropertyDefinitionUpdate(BaseModel):
     """Schema for updating a property definition. All fields optional."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str | None = Field(
         default=None,
@@ -104,6 +110,7 @@ class PropertyDefinitionUpdate(BaseModel):
     )
     data_type_hint: PropertyDataType | None = Field(
         default=None,
+        alias="data_type",
         description="Data type hint",
     )
     is_multivalued: bool | None = Field(
@@ -127,6 +134,7 @@ class PropertyDefinitionUpdate(BaseModel):
         default=None,
         max_length=20,
         pattern=r"^P\d+$",
+        alias="wikidata_id",
         description="Wikidata property ID",
     )
     validation_regex: str | None = Field(
@@ -145,12 +153,12 @@ class PropertyDefinitionRead(BaseModel):
     name: str = Field(description="Machine-readable name")
     display_name: str = Field(description="Human-readable label")
     description: str | None = Field(description="Property description")
-    data_type_hint: str = Field(description="Data type hint")
+    data_type_hint: str = Field(alias="data_type", description="Data type hint")
     is_multivalued: bool = Field(description="Allows multiple values")
     is_searchable: bool = Field(description="Indexed for search")
     is_display_field: bool = Field(description="Shown in summary views")
     display_order: int = Field(description="Display order")
-    wikidata_property: str | None = Field(description="Wikidata property ID")
+    wikidata_property: str | None = Field(alias="wikidata_id", description="Wikidata property ID")
     validation_regex: str | None = Field(description="Validation regex")
     created_at: datetime = Field(description="When created")
     updated_at: datetime = Field(description="Last update timestamp")

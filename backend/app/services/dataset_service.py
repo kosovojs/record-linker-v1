@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import re
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +15,13 @@ from app.schemas.common import PaginationParams
 from app.schemas.dataset import DatasetCreate, DatasetUpdate
 from app.services.base import BaseService
 from app.services.exceptions import ConflictError
+
+
+def slugify(text: str) -> str:
+    """Create a URL-friendly slug from text."""
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-")
 
 
 class DatasetService(BaseService[Dataset, DatasetCreate, DatasetUpdate]):
@@ -79,6 +87,10 @@ class DatasetService(BaseService[Dataset, DatasetCreate, DatasetUpdate]):
 
     async def create_with_validation(self, data: DatasetCreate) -> Dataset:
         """Create dataset with slug uniqueness validation."""
+        # Auto-generate slug if not provided
+        if not data.slug:
+            data.slug = slugify(data.name)
+
         existing = await self.get_by_slug(data.slug)
         if existing:
             raise ConflictError("Dataset", "slug", data.slug)

@@ -29,6 +29,8 @@ __all__ = [
 class ProjectBase(BaseModel):
     """Shared fields for project create/update operations."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str = Field(
         min_length=1,
         max_length=255,
@@ -58,6 +60,8 @@ class ProjectCreate(ProjectBase):
 
 class ProjectUpdate(BaseModel):
     """Schema for updating a project. All fields optional."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str | None = Field(
         default=None,
