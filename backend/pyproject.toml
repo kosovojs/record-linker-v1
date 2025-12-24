@@ -65,7 +65,10 @@ known-first-party = ["app"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -m 'not integration'"
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
 filterwarnings = [
     # Ignore Pydantic enum serialization warnings (SQLite stores enums as strings, not an issue in production PostgreSQL)
     "ignore:Pydantic serializer warnings:UserWarning",
