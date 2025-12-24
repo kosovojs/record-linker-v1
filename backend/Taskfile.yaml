@@ -7,3 +7,8 @@ tasks:
   run: uv run -m granian --interface asgi --host 0.0.0.0 --port 8000 --reload app.main:app
   migrate: uv run -m alembic upgrade head
   head: uv run alembic heads
+  current: uv run alembic current
+  history: uv run alembic history
+  test: uv run pytest
+  lint: uv run ruff check .
+  format: uv run ruff format .
