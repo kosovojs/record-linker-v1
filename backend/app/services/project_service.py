@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dataset import Dataset
@@ -150,12 +150,21 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
         project: Project,
         entry_uuids: list[UUID] | None = None,
         all_entries: bool = False,
+        chunk_size: int = 1000,
     ) -> tuple[int, str]:
         """
         Start a project by creating tasks for entries.
 
         Per RQ2: Requires either explicit entry_uuids or all_entries=True flag.
         Per RQ1: Project status becomes pending_search.
+
+        Uses chunked processing and bulk insert for scalability with large datasets.
+
+        Args:
+            project: The project to start
+            entry_uuids: Optional list of specific entry UUIDs to process
+            all_entries: If True, process all entries in the dataset
+            chunk_size: Number of entries to process per batch (default 1000)
 
         Returns: (tasks_created, new_status)
         """
@@ -165,26 +174,20 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
                 "Either 'entry_uuids' or 'all_entries: true' is required"
             )
 
-        # Get entries from dataset
+        # Build query for entry IDs only (not full objects) for memory efficiency
         if all_entries:
-            stmt = select(DatasetEntry).where(
+            entry_stmt = select(DatasetEntry.id).where(
                 DatasetEntry.dataset_id == project.dataset_id,
                 DatasetEntry.deleted_at.is_(None),
             )
         else:
-            stmt = select(DatasetEntry).where(
+            entry_stmt = select(DatasetEntry.id).where(
                 DatasetEntry.uuid.in_(entry_uuids),
                 DatasetEntry.dataset_id == project.dataset_id,
                 DatasetEntry.deleted_at.is_(None),
             )
 
-        result = await self.db.execute(stmt)
-        entries = list(result.scalars().all())
-
-        if not entries:
-            raise ValidationError("No entries found to create tasks for")
-
-        # Batch-fetch all existing task entry IDs to avoid N+1 queries
+        # Batch-fetch all existing task entry IDs to avoid duplicates
         existing_stmt = select(Task.dataset_entry_id).where(
             Task.project_id == project.id,
             Task.deleted_at.is_(None),
@@ -192,13 +195,37 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
         existing_result = await self.db.execute(existing_stmt)
         existing_entry_ids = set(existing_result.scalars().all())
 
-        # Create tasks for entries that don't already have one
+        # Stream entry IDs in chunks to avoid OOM with large datasets
+        result = await self.db.stream_scalars(entry_stmt)
+
         tasks_created = 0
-        for entry in entries:
-            if entry.id not in existing_entry_ids:
-                task = Task(project_id=project.id, dataset_entry_id=entry.id)
-                self.db.add(task)
-                tasks_created += 1
+        batch: list[dict] = []
+        has_entries = False
+
+        async for entry_id in result:
+            has_entries = True
+            if entry_id not in existing_entry_ids:
+                batch.append({
+                    "project_id": project.id,
+                    "dataset_entry_id": entry_id,
+                    "status": TaskStatus.NEW,
+                    "candidate_count": 0,
+                    "extra_data": {},
+                })
+
+                # Bulk insert when batch reaches chunk_size
+                if len(batch) >= chunk_size:
+                    await self.db.execute(insert(Task), batch)
+                    tasks_created += len(batch)
+                    batch = []
+
+        # Insert remaining batch
+        if batch:
+            await self.db.execute(insert(Task), batch)
+            tasks_created += len(batch)
+
+        if not has_entries:
+            raise ValidationError("No entries found to create tasks for")
 
         # Update project status
         project.status = ProjectStatus.PENDING_SEARCH
@@ -218,6 +245,8 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
         """
         Reset tasks for reprocessing based on criteria.
 
+        Uses bulk UPDATE for scalability - no objects loaded into memory.
+
         Criteria options: "failed", "no_candidates", "no_accepted"
         """
 
@@ -226,49 +255,44 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
                 "Either 'criteria' or 'task_uuids' is required"
             )
 
+        # Build WHERE conditions for the bulk update
+        conditions = [
+            Task.project_id == project.id,
+            Task.deleted_at.is_(None),
+        ]
+
         if task_uuids:
-            # Reset specific tasks
-            stmt = select(Task).where(
-                Task.uuid.in_(task_uuids),
-                Task.project_id == project.id,
-                Task.deleted_at.is_(None),
-            )
+            conditions.append(Task.uuid.in_(task_uuids))
+        elif criteria == "failed":
+            conditions.append(Task.status == TaskStatus.FAILED)
+        elif criteria == "no_candidates":
+            conditions.append(Task.status == TaskStatus.NO_CANDIDATES_FOUND)
+        elif criteria == "no_accepted":
+            conditions.extend([
+                Task.accepted_wikidata_id.is_(None),
+                Task.status.in_([
+                    TaskStatus.AWAITING_REVIEW,
+                    TaskStatus.REVIEWED,
+                ]),
+            ])
         else:
-            # Build query based on criteria
-            base_stmt = select(Task).where(
-                Task.project_id == project.id,
-                Task.deleted_at.is_(None),
+            raise ValidationError(f"Invalid criteria: {criteria}")
+
+        # Bulk update - no ORM objects loaded into memory
+        stmt = (
+            update(Task)
+            .where(*conditions)
+            .values(
+                status=TaskStatus.NEW,
+                accepted_wikidata_id=None,
+                accepted_candidate_id=None,
+                error_message=None,
             )
-
-            if criteria == "failed":
-                stmt = base_stmt.where(Task.status == TaskStatus.FAILED)
-            elif criteria == "no_candidates":
-                stmt = base_stmt.where(Task.status == TaskStatus.NO_CANDIDATES_FOUND)
-            elif criteria == "no_accepted":
-                stmt = base_stmt.where(
-                    Task.accepted_wikidata_id.is_(None),
-                    Task.status.in_([
-                        TaskStatus.AWAITING_REVIEW,
-                        TaskStatus.REVIEWED,
-                    ]),
-                )
-            else:
-                raise ValidationError(f"Invalid criteria: {criteria}")
-
+        )
         result = await self.db.execute(stmt)
-        tasks = list(result.scalars().all())
-
-        tasks_reset = 0
-        for task in tasks:
-            task.status = TaskStatus.NEW
-            task.accepted_wikidata_id = None
-            task.accepted_candidate_id = None
-            task.error_message = None
-            self.db.add(task)
-            tasks_reset += 1
-
         await self.db.commit()
-        return tasks_reset
+
+        return result.rowcount
 
     async def get_stats(self, project: Project) -> dict:
         """
