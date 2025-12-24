@@ -40,10 +40,11 @@ Run `task --list` to see all available commands. Key commands include:
 | Command | Description |
 |---------|-------------|
 | `task run` | Start the FastAPI server (reloads on change) |
-| `task migrate` | Upgrade database to latest schema |
-| `task head` | Show current migration head(s) |
-| `task current` | Show current migration status of the DB |
-| `task history` | Show migration history |
+| `task db:migrate` | Upgrade database to latest schema |
+| `task db:heads` | Show current migration head(s) |
+| `task db:current` | Show current migration status of the DB |
+| `task db:history` | Show migration history |
+| `task db:rollback` | Rollback the last migration |
 | `task test` | Run all tests |
 | `task lint` | Check code style with ruff |
 | `task format` | Format code with ruff |

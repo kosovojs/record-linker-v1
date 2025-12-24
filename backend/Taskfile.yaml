@@ -1,14 +1,74 @@
 version: '3'
 
 dotenv:
-- .env
+  - .env
 
 tasks:
-  run: uv run -m granian --interface asgi --host 0.0.0.0 --port 8000 --reload app.main:app
-  migrate: uv run -m alembic upgrade head
-  head: uv run alembic heads
-  current: uv run alembic current
-  history: uv run alembic history
-  test: uv run pytest
-  lint: uv run ruff check .
-  format: uv run ruff format .
+  # --- Application ---
+  run:
+    desc: Start the FastAPI development server using Granian
+    cmds:
+      - uv run -m granian --interface asgi --host 0.0.0.0 --port 8000 --reload app.main:app
+
+  # --- Database ---
+  db:migrate:
+    desc: Run all pending database migrations
+    cmds:
+      - uv run -m alembic upgrade head
+
+  db:rollback:
+    desc: Rollback the last database migration
+    cmds:
+      - uv run -m alembic downgrade -1
+
+  db:history:
+    desc: Show database migration history
+    cmds:
+      - uv run alembic history
+
+  db:current:
+    desc: Show the current migration revision of the database
+    cmds:
+      - uv run alembic current
+
+  db:heads:
+    desc: Show the current migration heads
+    cmds:
+      - uv run alembic heads
+
+  db:revision:
+    desc: Create a new migration revision (use with ARGS="-m 'description'")
+    cmds:
+      - uv run alembic revision {{.ARGS}}
+
+  # --- Quality & Testing ---
+  test:
+    desc: Run all tests using pytest
+    cmds:
+      - uv run pytest
+
+  test:cov:
+    desc: Run tests with coverage report
+    cmds:
+      - uv run pytest --cov=app
+
+  lint:
+    desc: Check code style and quality using Ruff
+    cmds:
+      - uv run ruff check .
+
+  format:
+    desc: Format code according to project standards using Ruff
+    cmds:
+      - uv run ruff format .
+
+  # --- Aliases (for convenience) ---
+  migrate:
+    desc: Alias for db:migrate
+    cmds:
+      - task: db:migrate
+
+  head:
+    desc: Alias for db:heads
+    cmds:
+      - task: db:heads
