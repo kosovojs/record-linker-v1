@@ -209,12 +209,12 @@ async def delete_entry(
     dataset_uuid: UUID = Path(
         ...,
         description="The unique identifier of the dataset",
-        example="440e8400-e29b-41d4-a716-446655440000",
+        examples=["440e8400-e29b-41d4-a716-446655440000"],
     ),
     entry_uuid: UUID = Path(
         ...,
         description="The unique identifier of the entry",
-        example="990e8400-e29b-41d4-a716-446655440000",
+        examples=["990e8400-e29b-41d4-a716-446655440000"],
     ),
 ):
     """Soft delete an entry."""

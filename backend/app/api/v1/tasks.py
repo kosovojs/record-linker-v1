@@ -267,12 +267,12 @@ async def skip_task(
     project_uuid: UUID = Path(
         ...,
         description="The unique identifier of the project",
-        example="550e8400-e29b-41d4-a716-446655440000",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
     ),
     task_uuid: UUID = Path(
         ...,
         description="The unique identifier of the task",
-        example="770e8400-e29b-41d4-a716-446655440000",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
     ),
 ):
     """Skip a task."""
@@ -306,7 +306,7 @@ async def get_task_by_uuid(
     task_uuid: UUID = Path(
         ...,
         description="The unique identifier of the task",
-        example="770e8400-e29b-41d4-a716-446655440000",
+        examples=["770e8400-e29b-41d4-a716-446655440000"],
     ),
 ):
     """Get a task by UUID alone (alias for nested route)."""

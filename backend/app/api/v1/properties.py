@@ -119,7 +119,7 @@ async def delete_property(
     uuid: UUID = Path(
         ...,
         description="The unique identifier of the property definition",
-        example="220e8400-e29b-41d4-a716-446655440000",
+        examples=["220e8400-e29b-41d4-a716-446655440000"],
     ),
 ):
     """Soft delete a property definition."""

@@ -111,7 +111,7 @@ async def list_projects(
         default=None,
         alias="status",
         description="Filter by project status",
-        example="active",
+        examples=["active"],
     ),
     dataset_uuid: UUID | None = Query(
         default=None,
@@ -283,7 +283,7 @@ async def get_project_stats(
     uuid: UUID = Path(
         ...,
         description="The unique identifier of the project",
-        example="550e8400-e29b-41d4-a716-446655440000",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
     ),
 ):
     """Get detailed project statistics computed on-the-fly."""
@@ -300,7 +300,7 @@ async def get_approved_matches(
     uuid: UUID = Path(
         ...,
         description="The unique identifier of the project",
-        example="550e8400-e29b-41d4-a716-446655440000",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
     ),
 ):
     """Get list of approved matches for a project."""
