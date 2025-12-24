@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dataset import Dataset
@@ -39,7 +39,6 @@ class DatasetService(BaseService[Dataset, DatasetCreate, DatasetUpdate]):
         search: str | None = None,
     ) -> tuple[list[Dataset], int]:
         """Get datasets with optional filters including search."""
-        from sqlalchemy import func, or_
 
         # Build base query with all filters at SQL level
         base_query = select(Dataset).where(Dataset.deleted_at.is_(None))

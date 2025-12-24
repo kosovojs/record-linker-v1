@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dataset import Dataset
@@ -42,7 +42,6 @@ class EntryService(BaseService[DatasetEntry, DatasetEntryCreate, DatasetEntryUpd
         search: str | None = None,
     ) -> tuple[list[DatasetEntry], int]:
         """Get entries for a specific dataset with pagination and search."""
-        from sqlalchemy import func
 
         # Build base query with all filters at SQL level
         base_query = select(DatasetEntry).where(

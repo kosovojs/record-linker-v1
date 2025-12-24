@@ -86,7 +86,6 @@ class TaskService(BaseService[Task, TaskCreate, TaskUpdate]):
         min_score: int | None = None,
     ) -> tuple[list[Task], int]:
         """Get tasks for a project with filtering at SQL level."""
-        from sqlalchemy import func
 
         # Build base query with all filters at SQL level
         base_query = select(Task).where(

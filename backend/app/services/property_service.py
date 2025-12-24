@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.property_definition import PropertyDefinition
@@ -43,7 +43,6 @@ class PropertyDefinitionService(
         wikidata_only: bool = False,
     ) -> tuple[list[PropertyDefinition], int]:
         """Get property definitions with optional filters at SQL level."""
-        from sqlalchemy import func
 
         # Build base query with all filters at SQL level
         base_query = select(PropertyDefinition).where(
