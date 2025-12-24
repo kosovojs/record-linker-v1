@@ -11,11 +11,16 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.project import Project
 from app.models.dataset import Dataset
+from app.models.dataset_entry import DatasetEntry
+from app.models.match_candidate import MatchCandidate
+from app.models.project import Project
+from app.models.task import Task
 from app.schemas.common import PaginationParams
+from app.schemas.enums import CandidateStatus, ProjectStatus, TaskStatus
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 from app.services.base import BaseService
+from app.services.exceptions import ValidationError
 
 
 class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
@@ -155,10 +160,6 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
 
         Returns: (tasks_created, new_status)
         """
-        from app.models.task import Task
-        from app.models.dataset_entry import DatasetEntry
-        from app.schemas.enums import ProjectStatus
-        from app.services.exceptions import ValidationError
 
         if not entry_uuids and not all_entries:
             raise ValidationError(
@@ -218,9 +219,6 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
 
         Criteria options: "failed", "no_candidates", "no_accepted"
         """
-        from app.models.task import Task
-        from app.schemas.enums import TaskStatus
-        from app.services.exceptions import ValidationError
 
         if not criteria and not task_uuids:
             raise ValidationError(
@@ -277,9 +275,6 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
 
         Returns dict with: total_tasks, by_status, candidates, avg_score, progress_percent
         """
-        from app.models.task import Task
-        from app.models.match_candidate import MatchCandidate
-        from app.schemas.enums import TaskStatus, CandidateStatus
 
         # Total tasks
         total_stmt = select(func.count()).where(
@@ -359,10 +354,6 @@ class ProjectService(BaseService[Project, ProjectCreate, ProjectUpdate]):
         Returns list of dicts with: task_uuid, entry_external_id, entry_display_name,
         wikidata_id, score
         """
-        from app.models.task import Task
-        from app.models.match_candidate import MatchCandidate
-        from app.models.dataset_entry import DatasetEntry
-        from app.schemas.enums import CandidateStatus
 
         stmt = (
             select(
