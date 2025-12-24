@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import Column, Index, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
@@ -69,7 +70,10 @@ class Dataset(BaseTableModel, table=True):
     entry_count: int = Field(default=0)
 
     # Sync tracking
-    last_synced_at: datetime | None = Field(default=None)
+    last_synced_at: datetime | None = Field(
+        default=None,
+        sa_type=sa.DateTime(timezone=True),
+    )
 
     # Typed JSONB - use DatasetExtraData schema
     extra_data: dict = Field(

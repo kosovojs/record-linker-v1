@@ -16,6 +16,7 @@ from __future__ import annotations
 import uuid as uuid_lib
 from datetime import UTC, datetime
 
+import sqlalchemy as sa
 from sqlmodel import Field, SQLModel
 
 __all__ = [
@@ -62,11 +63,20 @@ class BaseTableModel(SQLModel):
     )
 
     # Timestamps
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        sa_type=sa.DateTime(timezone=True),
+    )
+    updated_at: datetime = Field(
+        default_factory=utc_now,
+        sa_type=sa.DateTime(timezone=True),
+    )
 
     # Soft delete - null means active, set means deleted
-    deleted_at: datetime | None = Field(default=None)
+    deleted_at: datetime | None = Field(
+        default=None,
+        sa_type=sa.DateTime(timezone=True),
+    )
 
     @property
     def is_deleted(self) -> bool:

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
@@ -96,7 +97,10 @@ class MatchCandidate(BaseTableModel, table=True):
     )
 
     # Review tracking
-    reviewed_at: datetime | None = Field(default=None)
+    reviewed_at: datetime | None = Field(
+        default=None,
+        sa_type=sa.DateTime(timezone=True),
+    )
     reviewed_by_id: int | None = Field(
         default=None,
         sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=True),

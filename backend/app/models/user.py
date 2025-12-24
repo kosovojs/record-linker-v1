@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import Column, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
@@ -66,7 +67,10 @@ class User(BaseTableModel, table=True):
     )
 
     # Tracking
-    last_login_at: datetime | None = Field(default=None)
+    last_login_at: datetime | None = Field(
+        default=None,
+        sa_type=sa.DateTime(timezone=True),
+    )
 
     # JSONB settings - use UserSettings.model_dump() when setting
     settings: dict = Field(

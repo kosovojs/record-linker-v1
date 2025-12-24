@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -87,11 +88,20 @@ class Task(BaseTableModel, table=True):
     )
 
     # Processing timestamps
-    processing_started_at: datetime | None = Field(default=None)
-    processing_completed_at: datetime | None = Field(default=None)
+    processing_started_at: datetime | None = Field(
+        default=None,
+        sa_type=sa.DateTime(timezone=True),
+    )
+    processing_completed_at: datetime | None = Field(
+        default=None,
+        sa_type=sa.DateTime(timezone=True),
+    )
 
     # Review tracking
-    reviewed_at: datetime | None = Field(default=None)
+    reviewed_at: datetime | None = Field(
+        default=None,
+        sa_type=sa.DateTime(timezone=True),
+    )
     reviewed_by_id: int | None = Field(
         default=None,
         sa_column=Column(BigInteger, ForeignKey("users.id"), nullable=True),
